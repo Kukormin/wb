@@ -1,0 +1,17 @@
+<?php if (!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED !== true) die();
+
+$productIds = [];
+$products = \Local\Main\Products::getByCollection($collection['ID']);
+foreach ($products['ITEMS'] as $product)
+{
+	if ($product['DISABLE'])
+		continue;
+
+	$productIds[] = $product['ID'];
+}
+
+$filter = [
+	'UF_PRODUCT' => $productIds,
+];
+
+include('_graphs.php');

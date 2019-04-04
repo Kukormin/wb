@@ -1,0 +1,10 @@
+{
+	"autoload": {
+		"psr-4" : {
+			"Local\\":"lib"
+		}
+	},
+	"require": {
+		"phpoffice/phpspreadsheet": "^1.4"
+	}
+}
