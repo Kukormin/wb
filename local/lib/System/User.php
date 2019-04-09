@@ -32,8 +32,9 @@ class User
 	 */
 	public static function isAdmin()
 	{
-		$uid = self::getCurrentUserId();
-		return $uid == 1 || $uid == 2;
+		//$uid = self::getCurrentUserId();
+
+		return self::$u->IsAdmin();
 	}
 
 	/**
