@@ -3,6 +3,7 @@ namespace Local\Import;
 
 use Bitrix\Main\Type\DateTime;
 use Local\Main\Brands;
+use Local\Main\Collections;
 use Local\Main\Contracts;
 use Local\Main\Deficit;
 use Local\Main\Offers;
@@ -34,6 +35,7 @@ class Parser
 
 		Brands::getAll(true);
 		Sections::getAll(true);
+		$defaultCollection = Collections::getDefaultId();
 		$products = Products::getAll(true);
 		$offers = Offers::getAll(true);
 
@@ -165,6 +167,7 @@ class Parser
 							'ARTICLE_COLOR' => $data['nsa'],
 							'PRICE' => floatval($data['price_ru']),
 							'START_PRICE' => floatval($data['price_ru']),
+							'COLLECTION' => $defaultCollection,
 						],
 					];
 					$product = Products::add($fields);
@@ -608,7 +611,6 @@ class Parser
 		foreach ($data as $sectionKey => $sectionData)
 		{
 			$isWeek = $sectionKey == 'week';
-			$jReport = $isWeek ? 13 : 16;
 
 			$rows = explode('<tr', $sectionData);
 			foreach ($rows as $i => $row)
@@ -650,8 +652,9 @@ class Parser
 						$fee = str_replace(',', '.', str_replace('&#160;', '', $value));
 					elseif ($j == 8)
 						$discount = str_replace(',', '.', $value);
-					elseif ($j == $jReport)
-						$report = strpos($value, '/realization/details/') !== false;
+					elseif ($j >= 13)
+						if (strpos($value, '/realization/details/') !== false)
+							$report = true;
 				}
 
 				if (!$report && !$isWeek)
@@ -1230,144 +1233,6 @@ class Parser
 		$log['COUNTS'] = $counts;
 		$log['TEXT'] = $counts['ROWS'] . ': &' . $counts['UPD'] . ', -' . $counts['Z'];
 		if ($counts['ROWS'] < 500)
-			$log['WARNINGS'] = true;
-    }
-
-    /**
-     * Остатки на складах в Ульяновске
-	 * @param $fileName
-	 * @param $log
-	 */
-    public static function uln($fileName, &$log)
-    {
-        $ar = [];
-        try {
-		    $reader = new Xls();
-		    $spreadsheet = $reader->load($fileName);
-
-		    $sheet = $spreadsheet->getSheet(0);
-		    $ar = $sheet->toArray();
-	    }
-	    catch (\Exception $e)
-	    {
-		    Common::log($e->getMessage());
-		    $log['ERRORS'][] = 'Ошибка распознавания xls файла';
-	    }
-
-	    if (!$ar)
-	        return;
-
-	    $offers = Offers::getAll(true);
-
-	    $counts = [
-		    'ROWS' => 0,
-		    'ERRORS' => 0,
-		    'CHANGE' => 0,
-		    'NOCH' => 0,
-		    'Z' => 0,
-	    ];
-
-	    $clearCache = false;
-	    $jBar = false;
-	    $jStock = false;
-	    $jCost = false;
-		$jPrice = false;
-	    $jArticle = false;
-	    foreach ($ar as $rowIndex => $row)
-	    {
-		    if (!$rowIndex)
-		    {
-			    foreach ($row as $j => $td)
-			    {
-				    if ($td == 'Штрихкод')
-					    $jBar = $j;
-				    elseif ($td == 'Количество')
-					    $jStock = $j;
-				    elseif ($td == 'Себестоимость')
-					    $jCost = $j;
-				    elseif ($td == 'Продажная цена')
-					    $jPrice = $j;
-					elseif ($td == 'Артикул')
-						$jArticle = $j;
-			    }
-
-				if (!$jBar)
-				{
-					$log['ERRORS'][] = 'Не найдены ключевые заголовки';
-
-					return;
-				}
-		    }
-		    else
-		    {
-			    $bar = $row[$jBar];
-			    $stock = intval(str_replace(',', '', $row[$jStock]));
-			    $cost = floatval(str_replace(',', '', $row[$jCost]));
-			    $price = floatval(str_replace(',', '', $row[$jPrice]));
-			    $article = trim($row[$jArticle]);
-			    if (!$bar)
-				    break;
-
-			    $counts['ROWS']++;
-
-			    $offer = Offers::getByBar($bar);
-			    if (!$offer)
-			    {
-				    $counts['ERRORS']++;
-			    }
-			    else
-			    {
-				    $offers['ITEMS'][$offer['ID']]['EX'] = true;
-
-				    if ($offer['STOCKS'] != $stock)
-				    {
-					    Offers::updateStocks($offer['ID'], $stock);
-					    $counts['CHANGE']++;
-					    $clearCache = true;
-				    }
-				    else
-				    {
-					    $counts['NOCH']++;
-				    }
-
-				    if ($offer['PRICE'] != $price || $offer['COST'] != $cost)
-				    {
-					    Offers::updatePrices($offer['ID'], $price, $cost);
-					    $clearCache = true;
-				    }
-
-					if ($offer['ARTICLE'] != $article)
-					{
-						Offers::updateArticle($offer['ID'], $article);
-						$clearCache = true;
-					}
-			    }
-		    }
-	    }
-
-	    foreach ($offers['ITEMS'] as $offer)
-	    {
-		    if (!$offer['EX'] && $offer['STOCKS'] > 0) {
-			    Offers::updateStocks($offer['ID'], 0);
-			    $counts['Z']++;
-			    $clearCache = true;
-		    }
-	    }
-
-	    if ($clearCache)
-		    Offers::getAll(true);
-
-        $report = "Отчет:";
-        $report .= "\n\tВсего строк: " . $counts['ROWS'];
-        $report .= "\n\tНе найдено предложений: " . $counts['ERRORS'];
-        $report .= "\n\tИзменено: " . $counts['CHANGE'];
-        $report .= "\n\tОбнулено: " . $counts['Z'];
-        $report .= "\n\tБез изменений: " . $counts['NOCH'];
-        Common::log($report);
-
-		$log['COUNTS'] = $counts;
-		$log['TEXT'] = $counts['ROWS'] . ': &' . $counts['CHANGE'] . ', -' . $counts['Z'];
-		if ($counts['ROWS'] < 1000)
 			$log['WARNINGS'] = true;
     }
 

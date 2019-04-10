@@ -12,6 +12,10 @@ class User
 	 * @var bool Пользователь
 	 */
 	private static $user = false;
+
+	/**
+	 * @var \CUser
+	 */
 	private static $u = false;
 	private static $uId = false;
 	private static $users = [];
@@ -32,7 +36,7 @@ class User
 	 */
 	public static function isAdmin()
 	{
-		//$uid = self::getCurrentUserId();
+		self::getCurrentUserId();
 
 		return self::$u->IsAdmin();
 	}

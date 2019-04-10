@@ -167,32 +167,30 @@ class Service
     }
 
 	/**
-	 * Остатки в Улн - запуск по HTTP
+	 * Локальные остатки - запуск по HTTP
 	 */
-	public static function ulnAgent()
+	public static function localAgent()
 	{
-		// В сб и вс файл с данными не выгружается
-		$w = date('w');
-		if ($w == 0 || $w == 6)
-			return;
-
 		$http = new CurlHTTP();
 
-		$url = self::SELF_HOST . '/xls/import_uln.php?agent=Y';
+		$url = self::SELF_HOST . '/xls/import_local.php?agent=Y';
 		$http->get($url);
 	}
 
 	/**
-	 * Остатки в Улн
+	 * Локальные остатки
 	 * @param bool $agent
 	 */
-	public static function uln($agent = false)
+	public static function local($agent = false)
 	{
 		$begin = microtime(true);
 
-		$import = Imports::getByXmlId('uln');
+		$import = Imports::getByXmlId('local');
 		Common::setLogFilename('/_import/uln.txt');
-		$data = Loader::uln();
+		$data = Local::load();
+
+		if (isset($data['SKIP']) && $data['SKIP'] === true)
+			return;
 
 		$end = microtime(true);
 		Log::add($import['ID'], $begin, $end, count($data['ERRORS']) <= 0, $agent, $data);

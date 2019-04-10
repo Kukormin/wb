@@ -50,11 +50,11 @@ class Import
         return 'Import::deficit();';
     }
 
-	public static function uln()
+	public static function local()
 	{
-		\Local\Import\Service::ulnAgent();
+		\Local\Import\Service::localAgent();
 
-		return 'Import::uln();';
+		return 'Import::local();';
 	}
 
 	public static function prices()

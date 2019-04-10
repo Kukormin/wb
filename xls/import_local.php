@@ -14,7 +14,7 @@ echo '<pre>';
 
 $agent = $_GET['agent'] == 'Y';
 
-// Импорт остатков в Ульяновске
-\Local\Import\Service::uln($agent);
+// Импорт локальных данных
+\Local\Import\Service::local($agent);
 
 echo '</pre>';

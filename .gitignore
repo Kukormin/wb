@@ -19,5 +19,6 @@ Thumbs.db
 /_src
 /upload
 /bitrix
+/local/lib/Import/Local.php
 
 robots.txt

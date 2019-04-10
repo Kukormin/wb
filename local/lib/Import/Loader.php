@@ -12,8 +12,6 @@ use Local\Main\Stores;
  */
 class Loader
 {
-	const USER = 'UserName=supp11250&Password=XO780k1s';
-	const PUB_USER = 'Item.Login=Alexei-adamov%40rambler.ru&Item.Password=Jeam_Beam';
 	const HOST = 'https://suppliers.wildberries.ru';
 	const COOKIES = '/_import/cookies.txt';
 
@@ -40,7 +38,8 @@ class Loader
 	public static function login()
 	{
 		$url = self::HOST . '/Account/Login';
-		$post = self::USER;
+		$options = Options::get();
+		$post = 'UserName=' . $options['LOGIN'] . '&Password=' . $options['PASS'];
 		$res = self::$http->post($url, $post);
 
 		if ($res['http_code'] != 302)
@@ -105,9 +104,11 @@ class Loader
 			return false;
 		}
 
+		$options = Options::get();
 		$url = 'https://security.wildberries.ru/loginajax?returnUrl=https://www.wildberries.ru/';
 		$post =
-			'__RequestVerificationToken=' . $ar[2] . '&' . self::PUB_USER . '&Item.FullPhoneMobile=&BDC_VCID_signIn=' .
+			'__RequestVerificationToken=' . $ar[2] . '&Item.Login=' . $options['PUB_LOGIN'] .
+			'&Item.Password=' . $options['PUB_PASS'] . '&Item.FullPhoneMobile=&BDC_VCID_signIn=' .
 			$ar[5] . '&BDC_BackWorkaround_signIn=' . $ar[8] . '&BDC_Hs_signIn=' . $ar[11] . '&BDC_SP_signIn=' .
 			$ar[14] . '&CaptchaCode=&Item.IsPersistentCookie=true';
 		$res = self::$http->post($url, $post, '', [
@@ -744,40 +745,6 @@ class Loader
 		file_put_contents($reportFileName, $res['CONTENT']);
 
 		Parser::deficit($reportFileName, $log);
-
-		Common::log("Импорт завершен.\n");
-
-		return $log;
-	}
-
-	/**
-	 * Данные по остаткам на ульяновском складе
-	 * @return array
-	 */
-	public static function uln()
-	{
-		$log = [
-			'ERRORS' => [],
-		];
-
-		$filePath = '/srv/ftp/avail/report.xls';
-
-		Common::log(date('d.m.Y') . ' - Импорт остатков из 1С');
-
-		if (!file_exists($filePath))
-		{
-			Common::log('Не найден файл');
-			$log['ERRORS'][] = 'Не найден файл импорта';
-
-			return $log;
-		}
-
-		$fn = date('Y_m_d_H_i') . '.xls';
-		$reportFileName = $_SERVER['DOCUMENT_ROOT'] . '/_import/uln/' . $fn;
-		Common::log('Файл с данными: ' . $fn);
-		rename($filePath, $reportFileName);
-
-		Parser::uln($reportFileName, $log);
 
 		Common::log("Импорт завершен.\n");
 

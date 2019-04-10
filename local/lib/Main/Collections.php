@@ -76,4 +76,51 @@ class Collections
 
 		return $all['ITEMS'][$id];
 	}
+
+	/**
+	 * Возвращает элемент по ID
+	 * @param bool $refreshCache
+	 * @return int
+	 */
+	public static function getDefaultId($refreshCache = false)
+	{
+		$return = 0;
+
+		$extCache = new ExtCache(
+			array(
+				__FUNCTION__,
+			),
+			static::CACHE_PATH . __FUNCTION__ . '/',
+			86400 * 100
+		);
+		if (!$refreshCache && $extCache->initCache())
+			$return = $extCache->getVars();
+		else
+		{
+			$extCache->startDataCache();
+
+			$el = new \CIBlockElement();
+			$rsItems = $el->GetList(
+				array(),
+				array(
+					'IBLOCK_ID' => self::IBLOCK_ID,
+					'CODE' => 'default'
+				),
+				false,
+				false,
+				array(
+					'ID',
+				)
+			);
+			if ($item = $rsItems->Fetch())
+			{
+				$id = intval($item['ID']);
+				$return = $id;
+			}
+
+			$extCache->endDataCache($return);
+		}
+
+		return $return;
+	}
 }
