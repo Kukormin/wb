@@ -8,7 +8,16 @@ $brands = \Local\Main\Brands::getAll();
 	foreach ($brands['ITEMS'] as $brand)
 	{
 		?>
-		<li><a href="/brands/<?= $brand['ID'] ?>/""><img src="<?= $brand['PIC'] ?>" title="<?= $brand['NAME'] ?>" /></a></li><?
+		<li><a href="/brands/<?= $brand['ID'] ?>/"><?
+			if ($brand['PIC'])
+			{
+				?><img src="<?= $brand['PIC'] ?>" title="<?= $brand['NAME'] ?>" /><?
+			}
+			else
+			{
+				?><span><?= $brand['NAME'] ?></span><?
+			}
+		?></a></li><?
 	}
 
 	?>
