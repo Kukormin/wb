@@ -35,7 +35,6 @@ class Parser
 
 		Brands::getAll(true);
 		Sections::getAll(true);
-		$defaultCollection = Collections::getDefaultId();
 		$products = Products::getAll(true);
 		$offers = Offers::getAll(true);
 
@@ -94,11 +93,19 @@ class Parser
 				foreach ($parts as $j => $v)
 				{
 					$key = $map[$j];
-					$data[$key] = $v;
+					$data[$key] = trim($v);
 				}
 
 				$brandName = $data['brand_name'];
+				if (!strlen($brandName))
+				{
+					$counts['SKIP']++;
+					continue;
+				}
+
 				$brand = Brands::getByName($brandName);
+				if (!$brand)
+					$brand = Brands::add($brandName);
 				if (!$brand)
 				{
 					$counts['SKIP']++;
@@ -156,6 +163,9 @@ class Parser
 					elseif ($name == 'Бомберы')
 						$name = 'Бомбер';
 
+					$defaultCollection = Collections::getDefaultId($brand['ID']);
+					if (!$defaultCollection)
+						$defaultCollection = Collections::addDefault($brand['ID']);
 					$fields = [
 						'NAME' => $name,
 						'XML_ID' => $xmlId,

@@ -2,6 +2,13 @@
 
 $products = \Local\Main\Products::getAll(true);
 $offers = \Local\Main\Offers::getAll(true);
+$collections = \Local\Main\Collections::getAll(true);
+$defaultCollections = [];
+foreach ($collections['ITEMS'] as $collection)
+{
+	if ($collection['CODE'] === 'default')
+		$defaultCollections[$collection['ID']] = true;
+}
 
 $noPrice = [];
 $noCollection = [];
@@ -45,7 +52,7 @@ foreach ($products['ITEMS'] as $product)
 	if ($product['START_PRICE'] <= 0 || $product['PRICE'] <= 0)
 		$noPrice[] = $product;
 
-	if (!$product['COLLECTION'])
+	if (!$product['COLLECTION'] || $defaultCollections[$product['COLLECTION']])
 		$noCollection[] = $product;
 
 	if (!$product['ACTIVE'])

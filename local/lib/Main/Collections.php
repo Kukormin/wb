@@ -78,17 +78,19 @@ class Collections
 	}
 
 	/**
-	 * Возвращает элемент по ID
+	 * Возвращает коллекцию по-умолчанию для бренда
+	 * @param $brandId
 	 * @param bool $refreshCache
-	 * @return int
+	 * @return int|mixed
 	 */
-	public static function getDefaultId($refreshCache = false)
+	public static function getDefaultId($brandId, $refreshCache = false)
 	{
 		$return = 0;
 
 		$extCache = new ExtCache(
 			array(
 				__FUNCTION__,
+				$brandId,
 			),
 			static::CACHE_PATH . __FUNCTION__ . '/',
 			86400 * 100
@@ -104,6 +106,7 @@ class Collections
 				array(),
 				array(
 					'IBLOCK_ID' => self::IBLOCK_ID,
+					'PROPERTY_BRAND' => $brandId,
 					'CODE' => 'default'
 				),
 				false,
@@ -122,5 +125,27 @@ class Collections
 		}
 
 		return $return;
+	}
+
+	/**
+	 * Добавляет коллекцию по-умолчанию для бренда
+	 * @param $brandId
+	 * @return int|mixed
+	 */
+	public static function addDefault($brandId)
+	{
+		$el = new \CIBlockElement();
+		$el->Add(array(
+			'IBLOCK_ID' => self::IBLOCK_ID,
+			'CODE' => 'default',
+			'NAME' => 'Разобрать (по-умолчанию)',
+			'PROPERTY_VALUES' => array(
+				'BRAND' => $brandId,
+			),
+		));
+
+		self::getAll(true);
+
+		return self::getDefaultId($brandId, true);
 	}
 }
