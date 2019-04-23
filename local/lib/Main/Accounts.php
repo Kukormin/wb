@@ -1,24 +1,24 @@
 <?
-namespace Local\Import;
+namespace Local\Main;
 
 use Local\System\ExtCache;
 
 /**
- * Настройки
- * Class Options
- * @package Local\Import
+ * Учетные записи WB
+ * Class Accounts
+ * @package Local\Main
  */
-class Options
+class Accounts
 {
-	const IBLOCK_ID = 12;
-	const CACHE_PATH = 'Local/Main/Import/';
+	const IBLOCK_ID = 13;
+	const CACHE_PATH = 'Local/Main/Accounts/';
 
 	/**
 	 * Возвращает все элементы
 	 * @param bool $refreshCache
 	 * @return array|mixed
 	 */
-	public static function get($refreshCache = false)
+	public static function getAll($refreshCache = false)
 	{
 		$return = array();
 
@@ -45,16 +45,28 @@ class Options
 				false,
 				array(
 					'ID', 'IBLOCK_ID', 'NAME', 'CODE',
-					'PROPERTY_PUB_LOGIN',
-					'PROPERTY_PUB_PASS',
 				)
 			);
-			if ($item = $rsItems->Fetch())
+			while ($item = $rsItems->Fetch())
 			{
-				$return = array(
-					'PUB_LOGIN' => $item['PROPERTY_PUB_LOGIN_VALUE'],
-					'PUB_PASS' => $item['PROPERTY_PUB_PASS_VALUE'],
-				);
+				$id = intval($item['ID']);
+				$ar = explode(':', $item['CODE']);
+				$login = '';
+				$pass = '';
+				if (strlen($ar[0]) && strlen($ar[1]))
+				{
+					$login = $ar[0];
+					$pass = $ar[1];
+				}
+				if ($login)
+				{
+					$return[$id] = [
+						'ID' => $id,
+						'NAME' => trim($item['NAME']),
+						'LOGIN' => $login,
+						'PASS' => $pass,
+					];
+				}
 			}
 
 			$extCache->endDataCache($return);
@@ -62,5 +74,4 @@ class Options
 
 		return $return;
 	}
-
 }

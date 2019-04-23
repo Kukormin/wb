@@ -28,7 +28,7 @@ use PhpOffice\PhpSpreadsheet\Reader\Xlsx;
  */
 class Parser
 {
-	public static function nomenclature($content, &$log)
+	public static function nomenclature($accountId, $content, &$log)
 	{
 		if (ord($content[0]) === 239)
 			$content = substr($content, 1);
@@ -103,9 +103,9 @@ class Parser
 					continue;
 				}
 
-				$brand = Brands::getByName($brandName);
+				$brand = Brands::getByName($brandName, $accountId);
 				if (!$brand)
-					$brand = Brands::add($brandName);
+					$brand = Brands::add($brandName, $accountId);
 				if (!$brand)
 				{
 					$counts['SKIP']++;
@@ -431,10 +431,11 @@ class Parser
 
 	/**
 	 * Обарботка отчета по ценам и скидкам
+	 * @param $accountId
 	 * @param $content
 	 * @param $log
 	 */
-	public static function priceHistory($content, &$log)
+	public static function priceHistory($accountId, $content, &$log)
 	{
 		PriceHistory::getAllItems(true);
 
@@ -487,7 +488,7 @@ class Parser
 
 			if (!$hist['ACTIVE'])
 			{
-				$content = Loader::priceHistoryItem($hist, $log);
+				$content = Loader::priceHistoryItem($accountId, $hist, $log);
 				if ($content !== false)
 				{
 					self::priceHistoryItem($hist, $content, $log);
@@ -594,10 +595,11 @@ class Parser
 
 	/**
 	 * Обработка отчета продаж по реализации
+	 * @param $accountId
 	 * @param $content
 	 * @param $log
 	 */
-	public static function realization($content, &$log)
+	public static function realization($accountId, $content, &$log)
 	{
 		Realization::getAll(true);
 
@@ -706,7 +708,7 @@ class Parser
 
 				if (!$hist['ACTIVE'])
 				{
-					$content = Loader::realizationItem($hist, $log);
+					$content = Loader::realizationItem($accountId, $hist, $log);
 					if ($content !== false)
 					{
 						Realization::activeItem($hist['ID']);
@@ -1025,10 +1027,11 @@ class Parser
 
     /**
      * Отчет по дефициту
+     * @param $accountId
      * @param $fileName
 	 * @param $log
 	 */
-    public static function deficit($fileName, &$log)
+    public static function deficit($accountId, $fileName, &$log)
     {
         $ar = [];
         try {
@@ -1202,6 +1205,11 @@ class Parser
         {
             foreach ($offers['ITEMS'] as $offer)
             {
+            	$product = Products::getById($offer['PRODUCT']);
+            	$brand = Brands::getById($product['BRAND']);
+            	if ($accountId != $brand['ACCOUNT'])
+            		continue;
+
             	$storeId = Stores::COMMON_ID;
             	// Для общего дефицита
 	            if (!$offer['EX_DEFICIT'][$storeId])

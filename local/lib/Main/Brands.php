@@ -45,19 +45,22 @@ class Brands
 				false,
 				array(
 					'ID', 'IBLOCK_ID', 'NAME', 'CODE', 'PREVIEW_PICTURE',
+					'PROPERTY_ACCOUNT'
 				)
 			);
 			while ($item = $rsItems->Fetch())
 			{
 				$id = intval($item['ID']);
 				$name = trim($item['NAME']);
+				$accountId = intval($item['PROPERTY_ACCOUNT_VALUE']);
 				$return['ITEMS'][$id] = array(
 					'ID' => $id,
 					'NAME' => $name,
 					'CODE' => $item['CODE'],
 					'PIC' => \CFile::GetPath($item['PREVIEW_PICTURE']),
+					'ACCOUNT' => $accountId,
 				);
-				$return['BY_NAME'][$name] = $id;
+				$return['BY_NAME'][$accountId][$name] = $id;
 			}
 
 			$extCache->endDataCache($return);
@@ -81,13 +84,14 @@ class Brands
 	/**
 	 * Возвращает элемент по названию
 	 * @param $name
+	 * @param $accountId
 	 * @return mixed
 	 */
-	public static function getByName($name)
+	public static function getByName($name, $accountId)
 	{
 		$all = self::getAll();
 
-		$id = $all['BY_NAME'][$name];
+		$id = $all['BY_NAME'][$accountId][$name];
 
 		return $all['ITEMS'][$id];
 	}
@@ -95,18 +99,22 @@ class Brands
 	/**
 	 * Добавляет элемент
 	 * @param $name
+	 * @param $accountId
 	 * @return mixed
 	 */
-	public static function add($name)
+	public static function add($name, $accountId)
 	{
 		$el = new \CIBlockElement();
 		$el->Add([
 			'IBLOCK_ID' => self::IBLOCK_ID,
 			'NAME' => $name,
+			'PROPERTY_VALUES' => [
+				'ACCOUNT' => $accountId,
+			],
 		]);
 
 		self::getAll(true);
 
-		return self::getByName($name);
+		return self::getByName($name, $accountId);
 	}
 }
