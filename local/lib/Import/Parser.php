@@ -782,7 +782,7 @@ class Parser
 			// Первая строка (с заголовками)
 			if (!$rowIndex)
 			{
-				if (count($parts) != 23)
+				if (count($parts) < 25)
 				{
 					Common::log('Количество столбцов отличается от ожидаемого: ' . count($parts));
 					$log['ERRORS']['C'] = 'Количество столбцов отличается от ожидаемого: ' . count($parts);
