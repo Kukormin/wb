@@ -23,7 +23,7 @@ if (!$kind)
 $prefixByKind = [
     1 => 'Микс',
     2 => 'Моно',
-    3 => 'Моно-фикс',
+    3 => 'Моно+микс',
 ];
 
 $add = $od ? ' (общий дефицит)' : '';
@@ -32,7 +32,6 @@ $title = "$prefix поставка: " . $store['NAME'] . $add;
 $APPLICATION->SetTitle($title);
 $APPLICATION->AddChainItem($title);
 $monoMin = 10;
-$monoFix = 30;
 $monoCorrect = 5;
 
 $collections = \Local\Main\Collections::getAll();
@@ -126,7 +125,7 @@ foreach ($offers['ITEMS'] as $offer)
     if (!$product['ACTIVE'])
     	continue;
 
-    if ($kind > 1 && $product['PRICE'] >= 500)
+    if ($kind == 2 && $product['PRICE'] >= 500)
         continue;
     if ($kind == 1 && $product['PRICE'] < 500)
         continue;
@@ -163,78 +162,59 @@ foreach ($offers['ITEMS'] as $offer)
     $textCode = 0;
 
     $R = 0;
-    if ($kind == 1 || $kind == 2)
-    {
-	    if (!$target)
-	    {
-		    $textCode = 1;
-	    }
-	    elseif ($target <= $stocks)
-        {
-            $textCode = 2;
-        }
-        elseif (!$uln)
-        {
-            $textCode = 3;
-        }
-        elseif (!$deficit)
-	    {
-		    $textCode = 4;
-	    }
-        else
-        {
-            $R = $target - $stocks;
-            if ($uln < $R)
-            {
-                $R = $uln;
-                $textCode = 11;
-            }
-            if ($deficit < $R)
-            {
-                $R = $deficit;
-                $textCode = 12;
-            }
-            if ($kind == 2 && $R < $monoMin)
-            {
-                $d = $monoMin - $R;
-                if ($d < $monoCorrect && $monoMin <= $deficit && $monoMin <= $uln) {
-	                $R = $monoMin;
-	                $textCode = 41;
-                }
-                else
-                {
-	                $R = 0;
-	                $textCode = 13;
-                }
-            }
-        }
+	if (!$target)
+	{
+		$textCode = 1;
+	}
+	elseif ($target <= $stocks)
+	{
+		$textCode = 2;
+	}
+	elseif (!$uln)
+	{
+		$textCode = 3;
+	}
+	elseif (!$deficit)
+	{
+		$textCode = 4;
+	}
+	else
+	{
+		$R = $target - $stocks;
+		if ($uln < $R)
+		{
+			$R = $uln;
+			$textCode = 11;
+		}
+		if ($deficit < $R)
+		{
+			$R = $deficit;
+			$textCode = 12;
+		}
+		if ($kind > 1 && $R < $monoMin)
+		{
+			$d = $monoMin - $R;
+			if ($d < $monoCorrect && $monoMin <= $deficit && $monoMin <= $uln) {
+				$R = $monoMin;
+				$textCode = 41;
+			}
+			else
+			{
+				$R = 0;
+				$textCode = 13;
+			}
+		}
+	}
 
-	    if ($kind == 2 && $R)
-	    {
-		    $after = $uln - $R;
-		    if ($after > 0 && $after < $monoMin && $R + $after <= $deficit)
-		    {
-			    $R += $after;
-			    $textCode = 42;
-		    }
-	    }
-    }
-    elseif ($kind == 3)
-    {
-        if ($deficit < $monoFix)
-        {
-	        $textCode = 21;
-        }
-        elseif ($uln < $monoFix)
-        {
-	        $textCode = 13;
-        }
-        else
-        {
-            $R = $monoFix;
-        }
-    }
-
+	if ($kind > 1 && $R)
+	{
+		$after = $uln - $R;
+		if ($after > 0 && $after < $monoMin && $R + $after <= $deficit)
+		{
+			$R += $after;
+			$textCode = 42;
+		}
+	}
 
     $result[] = [
         'ID' => $offer['ID'],
@@ -324,7 +304,6 @@ $textByCode = [
     11 => 'Недостаточно на складе',
     12 => 'Дефицит не позволяет отправить больше',
     13 => 'Недостаточно для моно-поставки',
-    21 => 'Дефицит не позволяет отправить нужное кол-во',
     41 => 'Больше рассчетного',
     42 => 'Больше рассчетного под остаток',
 ];
@@ -525,7 +504,6 @@ $textByCode = [
 var kind = <?= $kind ?>;
 var monoCorrect = <?= $monoCorrect ?>;
 var monoMin = <?= $monoMin ?>;
-var monoFix = <?= $monoFix ?>;
 var textByCode = <?= json_encode($textByCode, JSON_UNESCAPED_UNICODE) ?>;</script>
 
 <?require($_SERVER["DOCUMENT_ROOT"]."/bitrix/footer.php");?>

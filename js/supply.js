@@ -120,75 +120,57 @@ var Supply = {
 		var data = DATA[offerId];
 		var R = 0;
 		var textcode = 0;
-		if (kind === 1 || kind === 2)
+		if (!data['TARGET'])
 		{
-			if (!data['TARGET'])
+			textcode = 1;
+		}
+		else if (data['TARGET'] <= data['STOCKS'])
+		{
+			textcode = 2;
+		}
+		else if (!data['ULN'])
+		{
+			textcode = 3;
+		}
+		else if (!data['DEFICIT'])
+		{
+			textcode = 4;
+		}
+		else
+		{
+			R = data['TARGET'] - data['STOCKS'];
+			if (data['ULN'] < R)
 			{
-				textcode = 1;
+				R = data['ULN'];
+				textcode = 11;
 			}
-			else if (data['TARGET'] <= data['STOCKS'])
+			if (data['DEFICIT'] < R)
 			{
-				textcode = 2;
+				R = data['DEFICIT'];
+				textcode = 12;
 			}
-			else if (!data['ULN'])
+			if (kind > 1 && R < monoMin)
 			{
-				textcode = 3;
-			}
-			else if (!data['DEFICIT'])
-			{
-				textcode = 4;
-			}
-			else
-			{
-				R = data['TARGET'] - data['STOCKS'];
-				if (data['ULN'] < R)
-				{
-					R = data['ULN'];
-					textcode = 11;
+				var d = monoMin - R;
+				if (d < monoCorrect && monoMin <= data['DEFICIT'] && monoMin <= data['ULN']) {
+					R = monoMin;
+					textcode = 41;
 				}
-				if (data['DEFICIT'] < R)
+				else
 				{
-					R = data['DEFICIT'];
-					textcode = 12;
-				}
-				if (kind === 2 && R < monoMin)
-				{
-					var d = monoMin - R;
-					if (d < monoCorrect && monoMin <= data['DEFICIT'] && monoMin <= data['ULN']) {
-						R = monoMin;
-						textcode = 41;
-					}
-					else
-					{
-						R = 0;
-						textcode = 13;
-					}
-				}
-			}
-
-			if (kind === 2 && R)
-			{
-				var after = data['ULN'] - R;
-				if (after > 0 && after < monoMin && R + after <= data['DEFICIT'])
-				{
-					R += after;
-					textcode = 42;
+					R = 0;
+					textcode = 13;
 				}
 			}
 		}
-		else if (kind === 3)
+
+		if (kind > 1 && R)
 		{
-			if (data['DEFICIT'] < monoFix)
+			var after = data['ULN'] - R;
+			if (after > 0 && after < monoMin && R + after <= data['DEFICIT'])
 			{
-				textcode = 21;
-			}
-			else if (data['ULN'] < monoFix)
-			{
-				textcode = 13;
-			}
-			else
-			{
-				R = monoFix;
+				R += after;
+				textcode = 42;
 			}
 		}
 

@@ -33,7 +33,7 @@ $sections = \Local\Main\Sections::getAll();
             <h3>Вид поставки</h3>
             <label><input type="radio" name="k" value="1" required checked />Микс</label><br />
             <label><input type="radio" name="k" value="2" required />Моно</label><br />
-            <label><input type="radio" name="k" value="3" required />Моно-фикс</label>
+            <label><input type="radio" name="k" value="3" required />Моно+микс</label>
         </div>
         <div>
             <h3>Фильтр по категориям (можно выбрать несколько - Ctrl)</h3>
