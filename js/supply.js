@@ -34,6 +34,7 @@ var Supply = {
 			Supply.table.toggleClass('showAdd');
 		});
 		$('.store-cb').click(this.storeCbClick);
+		$('#ignoreDeficit').click(this.ignoreDeficit);
 
 		$(document).on('table.edit', this.changeTarget);
 		$(window).scroll(this.onScroll);
@@ -251,6 +252,21 @@ var Supply = {
 			st.addClass('sts');
 		else
 			st.removeClass('sts');
+	},
+
+	ignoreDeficit: function() {
+		var cb = $(this);
+		var checked = cb.prop('checked');
+		var val = checked ? '1' : '0';
+		var url = location.href;
+		var p = url.indexOf('igd=');
+		if (p > 0) {
+			url = url.substr(0, p + 4) + val + url.substr(p + 5);
+		}
+		else {
+			url += '&igd=' + val;
+		}
+		location.href = url;
 	},
 
 	onScroll: function() {

@@ -20,6 +20,8 @@ $kind = intval($_REQUEST['k']);
 if (!$kind)
     return;
 
+$ignoreDeficit = $_REQUEST['igd'] == 1;
+
 $prefixByKind = [
     1 => 'Микс',
     2 => 'Моно',
@@ -54,7 +56,12 @@ $param = $APPLICATION->GetCurParam();
             <label><input type="checkbox" id="hideNotZeroTarget"> (База = 0) - Скрыть позиции, где заполнена "База"</label><br />
             <label><input type="checkbox" id="showDefUln"> (Дефицит = 0) и (Улн > 0)</label><br />
             <label><input type="checkbox" id="showAdd"> Больше рассчетного</label><br />
-        </div><?
+        </div>
+
+		<div>
+			<h3>Опции</h3>
+			<label><input type="checkbox" id="ignoreDeficit" name="igd"<?= $_GET['igd'] == 1 ? ' checked' : '' ?> value="1"> Игнорировать дефицит</label><br />
+		</div><?
 
         if (count($_REQUEST['section']) > 0)
         {
@@ -174,7 +181,7 @@ foreach ($offers['ITEMS'] as $offer)
 	{
 		$textCode = 3;
 	}
-	elseif (!$deficit)
+	elseif (!$deficit && !$ignoreDeficit)
 	{
 		$textCode = 4;
 	}
@@ -186,7 +193,7 @@ foreach ($offers['ITEMS'] as $offer)
 			$R = $uln;
 			$textCode = 11;
 		}
-		if ($deficit < $R)
+		if (!$ignoreDeficit && $deficit < $R)
 		{
 			$R = $deficit;
 			$textCode = 12;
@@ -194,7 +201,7 @@ foreach ($offers['ITEMS'] as $offer)
 		if ($kind > 1 && $R < $monoMin)
 		{
 			$d = $monoMin - $R;
-			if ($d < $monoCorrect && $monoMin <= $deficit && $monoMin <= $uln) {
+			if ($d < $monoCorrect && ($monoMin <= $deficit || $ignoreDeficit) && $monoMin <= $uln) {
 				$R = $monoMin;
 				$textCode = 41;
 			}
@@ -209,7 +216,7 @@ foreach ($offers['ITEMS'] as $offer)
 	if ($kind > 1 && $R)
 	{
 		$after = $uln - $R;
-		if ($after > 0 && $after < $monoMin && $R + $after <= $deficit)
+		if ($after > 0 && $after < $monoMin && ($R + $after <= $deficit || $ignoreDeficit))
 		{
 			$R += $after;
 			$textCode = 42;

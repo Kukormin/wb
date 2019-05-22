@@ -438,38 +438,12 @@ class Parser
 	public static function priceHistory($accountId, $content, &$log)
 	{
 		PriceHistory::getAllItems(true);
-
-		$ar = Common::strParts($content, ['js-dataTableTemplate', '<tbody>', '</tbody>']);
-		if (count($ar) < 4)
+		$data = json_decode($content, true);
+		foreach ($data as $item)
 		{
-			Common::log('Не найдена таблица с данными');
-			$log['ERRORS'][] = 'Не найдена таблица с данными';
-
-			return;
-		}
-
-		$rows = explode("<tr>", $ar[2]);
-		foreach ($rows as $i => $row)
-		{
-			if (!$i)
-				continue;
-
-			$date = '';
-			$xmlId = 0;
-			$name = '';
-
-			$parts = explode('<td>', $row);
-			foreach ($parts as $j => $part)
-			{
-				$parts1 = Common::strParts($part, ['</td>']);
-				$value = $parts1[0];
-				if ($j == 1)
-					$date = $value;
-				elseif ($j == 2)
-					$xmlId = $value;
-				elseif ($j == 4)
-					$name = $value;
-			}
+			$date = $item['uploadDate'];
+			$xmlId = $item['id'];
+			$name = $item['uploadType'];
 
 			if (!$xmlId)
 			{
@@ -512,59 +486,21 @@ class Parser
 	 */
 	public static function priceHistoryItem($hist, $content, &$log)
 	{
-		$ar = Common::strParts($content, ['js-dataTableTemplate', '<tbody>', '</tbody>']);
-		if (count($ar) < 4)
-		{
-			Common::log('Не найдена таблица с данными');
-			$log['ERRORS'][] = 'Не найдена таблица с данными';
-
-			return;
-		}
+		$data = json_decode($content, true);
 
 		$counts = [
-			'ROWS' => 0,
+			'ROWS' => count($data),
 			'ERROR_PRODUCTS' => 0,
 			'PRICE_UPDATED' => 0,
 		];
 
-		$rows = explode("<tr>", $ar[2]);
-		foreach ($rows as $i => $row)
+		foreach ($data as $item)
 		{
-			if (!$i)
-				continue;
-
-			$counts['ROWS']++;
-
-			$xmlId = '';
-			$price = 0;
-			$discount = 0;
-			$priceCh = 0;
-			$discountCh = 0;
-
-			$parts = explode('<td>', $row);
-			foreach ($parts as $j => $part)
-			{
-				$parts1 = Common::strParts($part, ['</td>']);
-				$value = $parts1[0];
-				if ($j == 2)
-					$xmlId = $value;
-				elseif ($j == 4)
-				{
-					if (strlen($value))
-					{
-						$priceCh = 1;
-						$price = floatval(str_replace(',', '.', $value));
-					}
-				}
-				elseif ($j == 5)
-				{
-					if (strlen($value))
-					{
-						$discountCh = 1;
-						$discount = floatval(str_replace(',', '.', $value));
-					}
-				}
-			}
+			$xmlId = $item['nmId'];
+			$price = $item['price'];
+			$discount = $item['discount'];
+			$priceCh = isset($item['price']);
+			$discountCh = isset($item['discount']);
 
 			$product = Products::getByXmlId($xmlId);
 			if (!$product)

@@ -310,7 +310,7 @@ class Loader
 		$accounts = Accounts::getAll();
 		foreach ($accounts as $accountId => $account)
 		{
-			$url = self::HOST . '/discount/history';
+			$url = self::HOST . '/ApiDiscount/api/v1/getUploadsHistory';
 			$res = self::$http[$accountId]->get($url);
 
 			if ($res['http_code'] == 302)
@@ -325,6 +325,8 @@ class Loader
 
 				$res = self::$http[$accountId]->get($url);
 			}
+
+			file_put_contents($_SERVER['DOCUMENT_ROOT'] . '/_import/price/index.json', $res['CONTENT']);
 
 			Parser::priceHistory($accountId, $res['CONTENT'], $log);
 		}
@@ -347,7 +349,7 @@ class Loader
 
 		self::initHttp();
 
-		$url = self::HOST . '/DiscountAgreement/DiscountDetails?UploadId=' . $hist['XML_ID'];
+		$url = self::HOST . '/ApiDiscount/api/v1/getDetailedHistory/' . $hist['XML_ID'];
 		$res = self::$http[$accountId]->get($url);
 
 		if ($res['http_code'] != 200)
@@ -358,7 +360,7 @@ class Loader
 			return false;
 		}
 
-		$fn = $hist['XML_ID'] . '.html';
+		$fn = $hist['XML_ID'] . '.json';
 		$reportFileName = $_SERVER['DOCUMENT_ROOT'] . '/_import/price/' . $fn;
 		Common::log('Файл с данными: ' . $fn);
 		file_put_contents($reportFileName, $res['CONTENT']);
