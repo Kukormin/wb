@@ -286,7 +286,7 @@ class Loader
 			Common::log('Файл с данными: ' . $fn);
 			file_put_contents($reportFileName, $res['CONTENT']);
 
-			Parser::storeStocksAndPrices($res['CONTENT'], $log);
+			Parser::storeStocksAndPrices($accountId, $res['CONTENT'], $log);
 		}
 
 		Common::log("Импорт завершен.\n");

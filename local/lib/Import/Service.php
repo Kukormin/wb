@@ -10,20 +10,55 @@ class Service
 {
 	const SELF_HOST = 'http://victoria-kids.tk';
 
+	private static function checkLock($code, $expired = 7200)
+	{
+		$fileName = $_SERVER['DOCUMENT_ROOT'] . '/_import/' . $code . '.lock';
+		if (!file_exists($fileName))
+		{
+			$fp = fopen($fileName, 'w+');
+			fclose($fp);
+
+			return true;
+		}
+		elseif (filemtime($fileName) + $expired < time())
+		{
+			return true;
+		}
+
+		return false;
+	}
+
+	private static function clearLock($code)
+	{
+		$fileName = $_SERVER['DOCUMENT_ROOT'] . '/_import/' . $code . '.lock';
+		if (file_exists($fileName))
+		{
+			unlink($fileName);
+		}
+	}
+
 	/**
 	 * Номенклатура
 	 * @param bool $agent
 	 */
 	public static function nomenclature($agent = false)
 	{
+		Common::setLogFilename('/_import/nomenclature.txt');
+		if (!self::checkLock('nomenclature'))
+		{
+			Common::log('Импорт номенклатуры уже запущен.');
+			return;
+		}
+
 		$begin = microtime(true);
 
 		$import = Imports::getByXmlId('nomenclature');
-		Common::setLogFilename('/_import/nomenclature.txt');
 		$data = Loader::nomenclature();
 
 		$end = microtime(true);
 		Log::add($import['ID'], $begin, $end, count($data['ERRORS']) <= 0, $agent, $data);
+
+		self::clearLock('nomenclature');
 	}
 
 	/**
@@ -32,14 +67,22 @@ class Service
 	 */
 	public static function storeStocksAndPrices($agent = false)
 	{
+		Common::setLogFilename('/_import/storeStocksAndPrices.txt');
+		if (!self::checkLock('storeStocksAndPrices'))
+		{
+			Common::log('Импорт данных по остаткам уже запущен.');
+			return;
+		}
+
 		$begin = microtime(true);
 
 		$import = Imports::getByXmlId('storeStocksAndPrices');
-		Common::setLogFilename('/_import/storeStocksAndPrices.txt');
 		$data = Loader::storeStocksAndPrices();
 
 		$end = microtime(true);
 		Log::add($import['ID'], $begin, $end, count($data['ERRORS']) <= 0, $agent, $data);
+
+		self::clearLock('storeStocksAndPrices');
 	}
 
 	/**
@@ -48,14 +91,22 @@ class Service
 	 */
 	public static function priceHistory($agent = false)
 	{
+		Common::setLogFilename('/_import/priceHistory.txt');
+		if (!self::checkLock('priceHistory'))
+		{
+			Common::log('Импорт истории загрузок цен уже запущен.');
+			return;
+		}
+
 		$begin = microtime(true);
 
 		$import = Imports::getByXmlId('priceHistory');
-		Common::setLogFilename('/_import/priceHistory.txt');
 		$data = Loader::priceHistory();
 
 		$end = microtime(true);
 		Log::add($import['ID'], $begin, $end, count($data['ERRORS']) <= 0, $agent, $data);
+
+		self::clearLock('priceHistory');
 	}
 
 	/**
@@ -64,14 +115,22 @@ class Service
 	 */
 	public static function sales($agent = false)
 	{
+		Common::setLogFilename('/_import/sales.txt');
+		if (!self::checkLock('sales'))
+		{
+			Common::log('Импорт продаж уже запущен.');
+			return;
+		}
+
 		$begin = microtime(true);
 
 		$import = Imports::getByXmlId('sales');
-		Common::setLogFilename('/_import/sales.txt');
 		$data = Loader::sales();
 
 		$end = microtime(true);
 		Log::add($import['ID'], $begin, $end, count($data['ERRORS']) <= 0, $agent, $data);
+
+		self::clearLock('sales');
 	}
 
 	/**
@@ -91,14 +150,22 @@ class Service
 	 */
 	public static function realization($agent = false)
 	{
+		Common::setLogFilename('/_import/realization.txt');
+		if (!self::checkLock('realization'))
+		{
+			Common::log('Импорт продаж по реализации уже запущен.');
+			return;
+		}
+
 		$begin = microtime(true);
 
 		$import = Imports::getByXmlId('realization');
-		Common::setLogFilename('/_import/realization.txt');
 		$data = Loader::realization();
 
 		$end = microtime(true);
 		Log::add($import['ID'], $begin, $end, count($data['ERRORS']) <= 0, $agent, $data);
+
+		self::clearLock('realization');
 	}
 
 	/**
@@ -114,7 +181,8 @@ class Service
 		$data = [
 			'ERRORS' => [],
 		];
-		Loader::realizationItem($item, $data);
+		$log = [];
+		Loader::realizationItem($item, $data, $log);
 		$success = count($data['ERRORS']) <= 0;
 		if ($success)
 			$data['TEXT'] = '"' . $item['XML_ID'] . '": данные успешно обновлены';
@@ -129,14 +197,22 @@ class Service
 	 */
 	public static function shipping($agent = false)
 	{
+		Common::setLogFilename('/_import/shipping.txt');
+		if (!self::checkLock('shipping'))
+		{
+			Common::log('Импорт товаров пути уже запущен.');
+			return;
+		}
+
 		$begin = microtime(true);
 
 		$import = Imports::getByXmlId('shipping');
-		Common::setLogFilename('/_import/shipping.txt');
 		$data = Loader::shipping();
 
 		$end = microtime(true);
 		Log::add($import['ID'], $begin, $end, count($data['ERRORS']) <= 0, $agent, $data);
+
+		self::clearLock('shipping');
 	}
 
 	/**
@@ -156,14 +232,22 @@ class Service
 	 */
     public static function deficit($agent = false)
     {
+		Common::setLogFilename('/_import/deficit.txt');
+		if (!self::checkLock('deficit'))
+		{
+			Common::log('Импорт дефицита уже запущен.');
+			return;
+		}
+
 		$begin = microtime(true);
 
 		$import = Imports::getByXmlId('deficit');
-		Common::setLogFilename('/_import/deficit.txt');
 		$data = Loader::deficit();
 
 		$end = microtime(true);
 		Log::add($import['ID'], $begin, $end, count($data['ERRORS']) <= 0, $agent, $data);
+
+		self::clearLock('deficit');
     }
 
 	/**
@@ -183,10 +267,16 @@ class Service
 	 */
 	public static function local($agent = false)
 	{
+		Common::setLogFilename('/_import/uln.txt');
+		if (!self::checkLock('local'))
+		{
+			Common::log('Импорт локальных данных уже запущен.');
+			return;
+		}
+
 		$begin = microtime(true);
 
 		$import = Imports::getByXmlId('local');
-		Common::setLogFilename('/_import/uln.txt');
 		$data = Local::load();
 
 		if (isset($data['SKIP']) && $data['SKIP'] === true)
@@ -194,6 +284,8 @@ class Service
 
 		$end = microtime(true);
 		Log::add($import['ID'], $begin, $end, count($data['ERRORS']) <= 0, $agent, $data);
+
+		self::clearLock('local');
 	}
 
 	/**
@@ -202,13 +294,21 @@ class Service
 	 */
 	public static function prices($agent = false)
 	{
+		Common::setLogFilename('/_import/prices.txt');
+		if (!self::checkLock('prices'))
+		{
+			Common::log('Импорт цен с сайта уже запущен.');
+			return;
+		}
+
 		$begin = microtime(true);
 
 		$import = Imports::getByXmlId('prices');
-		Common::setLogFilename('/_import/prices.txt');
 		$data = Loader::prices();
 
 		$end = microtime(true);
 		Log::add($import['ID'], $begin, $end, count($data['ERRORS']) <= 0, $agent, $data);
+
+		self::clearLock('prices');
 	}
 }

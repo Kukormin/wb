@@ -261,17 +261,18 @@ class Parser
 
 	/**
 	 * Обарботка отчета по остаткам и ценам
+	 * @param $accountId
 	 * @param $content
 	 * @param $log
 	 */
-	public static function storeStocksAndPrices($content, &$log)
+	public static function storeStocksAndPrices($accountId, $content, &$log)
 	{
 		if (ord($content[0]) === 239)
 			$content = substr($content, 1);
 
 		Products::getAll(true);
 		Offers::getAll(true);
-		Stocks::getAll(true);
+		$allStocks = Stocks::getAll(true);
 		$stores = Stores::getAll(true);
 
 		$map = [];
@@ -282,6 +283,7 @@ class Parser
 			'PRICE_UPDATED' => 0,
 			'OFFERS_UPDATED' => 0,
 			'STOCKS_UPDATED' => 0,
+			'STOCKS_Z' => 0,
 			'H_SKIP' => 0,
 			'H_EXISTS' => 0,
 			'H_ADDED' => 0,
@@ -358,6 +360,8 @@ class Parser
 					continue;
 				}
 
+				unset($allStocks[$offer['ID']]);
+
 				$text = $data['Textbox1'];
 				$arText = Common::strParts($text, [
 					'Данные по остаткам на: ',
@@ -405,6 +409,30 @@ class Parser
 			}
 		}
 
+		// удаление остатков из БД, которых нет в файле
+		if ($counts['OFFERS_UPDATED'])
+		{
+			foreach ($allStocks as $offerId => $stocks)
+			{
+				$offer = Offers::getById($offerId);
+				$product = Products::getById($offer['PRODUCT']);
+				$brand = Brands::getById($product['BRAND']);
+				if ($brand['ACCOUNT'] != $accountId)
+					continue;
+
+				foreach ($stocks as $storeId => $ar)
+				{
+					if ($ar['AMOUNT'] > 0)
+					{
+						Stocks::update($ar['ID'], 0);
+						$counts['STOCKS_Z']++;
+					}
+				}
+			}
+
+			Stocks::getAll(true);
+		}
+
 		$report = "Отчет:";
 		$report .= "\n\tВсего строк: " . $counts['ROWS'];
 		$report .= "\n\tОшибок товаров: " . $counts['ERROR_PRODUCTS'];
@@ -412,6 +440,7 @@ class Parser
 		$report .= "\n\tТоваров, у которых обновились цены или скидки: " . $counts['PRICE_UPDATED'];
 		$report .= "\n\tПредложений, у которых обновились остатки: " . $counts['OFFERS_UPDATED'];
 		$report .= "\n\tОбновлений остатков: " . $counts['STOCKS_UPDATED'];
+		$report .= "\n\tОбнулений остатков: " . $counts['STOCKS_Z'];
 		$report .= "\nИстория остатков:";
 		$report .= "\n\tДобавлено: " . $counts['H_ADDED'];
 		$report .= "\n\tБез изменений: " . $counts['H_EXISTS'];
@@ -424,9 +453,6 @@ class Parser
 		$log['TEXT'] = $counts['ROWS'] . ': ' . $counts['STOCKS_UPDATED'];
 		if ($counts['ROWS'] < 500)
 			$log['WARNINGS'] = true;
-
-		if ($counts['OFFERS_UPDATED'])
-			Stocks::getAll(true);
 	}
 
 	/**
