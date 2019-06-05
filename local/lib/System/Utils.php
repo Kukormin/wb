@@ -31,12 +31,60 @@ class Utils
 	}
 
 	/**
+	 * Возвращает СПП на заданный день для бренда
+	 * @param $dayBegin
+	 * @param $dayEnd
+	 * @param $sppHistory
+	 * @param $brand
+	 * @return mixed
+	 */
+	public static function getSppByDay($dayBegin, $dayEnd, $sppHistory, $brand)
+	{
+		$brandSpp = 0;
+		$allSpp = 0;
+		foreach ($sppHistory as $item)
+		{
+			// Время изменения цены
+			$date = $item['UF_DATE'];
+			// Если изменения позже даты - то выходим
+			if ($date > $dayEnd)
+				break;
+
+			if ($date < $dayBegin)
+			{
+				if ($item['UF_BRAND'] == $brand)
+					$brandSpp = $item['UF_VALUE'];
+				elseif (!$item['UF_BRAND'])
+					$allSpp = $item['UF_VALUE'];
+			}
+			else
+			{
+				if ($item['UF_BRAND'] == $brand)
+				{
+					if ($item['UF_VALUE'] > $brandSpp)
+						$brandSpp = $item['UF_VALUE'];
+				}
+				elseif (!$item['UF_BRAND'])
+				{
+					if ($item['UF_VALUE'] > $allSpp)
+						$allSpp = $item['UF_VALUE'];
+				}
+			}
+		}
+
+		return max($brandSpp, $allSpp);
+	}
+
+	/**
+	 * Возвращает цены и скидки на заданный день
 	 * @param $day string
 	 * @param $priceHistory array история изменения цен с сортировкой по возрастанию
 	 * @param $startPrice float начальная цена
+	 * @param $sppHistory array история изменения СПП
+	 * @param $brand int Бренд
 	 * @return array
 	 */
-	public static function getProductPriceByDay($day, $priceHistory, $startPrice)
+	public static function getProductPriceByDay($day, $priceHistory, $startPrice, $sppHistory, $brand)
 	{
 		// Время начала дня
 		$dayBegin = \Bitrix\Main\Type\DateTime::createFromUserTime($day);
@@ -49,6 +97,11 @@ class Utils
 			'PRICE_TO' => $startPrice,
 			'DISCOUNT_FROM' => 0,
 			'DISCOUNT_TO' => 0,
+			'PROMO_FROM' => 0,
+			'PROMO_TO' => 0,
+			'ALL_PROMO_FROM' => 0,
+			'ALL_PROMO_TO' => 0,
+			'SPP_TO' => self::getSppByDay($dayBegin, $dayEnd, $sppHistory, $brand),
 		];
 
 		foreach ($priceHistory as $item)
@@ -71,6 +124,19 @@ class Utils
 					$return['DISCOUNT_FROM'] = $item['UF_DISCOUNT'];
 					$return['DISCOUNT_TO'] = $item['UF_DISCOUNT'];
 				}
+				if ($item['UF_PROMO_CHANGE'])
+				{
+					if ($item['UF_PRODUCT'])
+					{
+						$return['PROMO_FROM'] = $item['UF_PROMO'];
+						$return['PROMO_TO'] = $item['UF_PROMO'];
+					}
+					else
+					{
+						$return['ALL_PROMO_FROM'] = $item['UF_PROMO'];
+						$return['ALL_PROMO_TO'] = $item['UF_PROMO'];
+					}
+				}
 			}
 			else
 			{
@@ -88,6 +154,23 @@ class Utils
 					if ($item['UF_DISCOUNT'] > $return['DISCOUNT_TO'])
 						$return['DISCOUNT_TO'] = $item['UF_DISCOUNT'];
 				}
+				if ($item['UF_PROMO_CHANGE'])
+				{
+					if ($item['UF_PRODUCT'])
+					{
+						if ($item['UF_PROMO'] < $return['PROMO_FROM'])
+							$return['PROMO_FROM'] = $item['UF_PROMO'];
+						if ($item['UF_PROMO'] > $return['PROMO_TO'])
+							$return['PROMO_TO'] = $item['UF_PROMO'];
+					}
+					else
+					{
+						if ($item['UF_PROMO'] < $return['ALL_PROMO_FROM'])
+							$return['ALL_PROMO_FROM'] = $item['UF_PROMO'];
+						if ($item['UF_PROMO'] > $return['ALL_PROMO_TO'])
+							$return['ALL_PROMO_TO'] = $item['UF_PROMO'];
+					}
+				}
 			}
 		}
 
@@ -97,10 +180,10 @@ class Utils
 		{
 			if ($discount['FROM~'] <= $dayBegin && $dayBegin <= $discount['TO~'])
 			{
-				if ($discount['CODE'] < $return['DISCOUNT_FROM'])
-					$return['DISCOUNT_FROM'] = $discount['CODE'];
-				if ($discount['CODE'] > $return['DISCOUNT_TO'])
-					$return['DISCOUNT_TO'] = $discount['CODE'];
+				if ($discount['CODE'] < $return['ALL_PROMO_FROM'])
+					$return['ALL_PROMO_FROM'] = $discount['CODE'];
+				if ($discount['CODE'] > $return['ALL_PROMO_TO'])
+					$return['ALL_PROMO_TO'] = $discount['CODE'];
 			}
 		}
 
@@ -111,8 +194,18 @@ class Utils
 		if ($return['DISCOUNT_FROM'] != $return['DISCOUNT_TO'])
 			$return['DISCOUNT'] .= ' - ' . $return['DISCOUNT_TO'];
 
-		$return['RES_FROM'] = $return['PRICE_FROM'] * (1 - $return['DISCOUNT_TO'] / 100);
-		$return['RES_TO'] = $return['PRICE_TO'] * (1 - $return['DISCOUNT_FROM'] / 100);
+		$return['RES_PROMO_FROM'] = max($return['PROMO_FROM'], $return['ALL_PROMO_FROM']);
+		$return['RES_PROMO_TO'] = max($return['PROMO_TO'], $return['ALL_PROMO_TO']);
+		$return['PROMO'] = $return['RES_PROMO_FROM'];
+		if ($return['RES_PROMO_FROM'] != $return['RES_PROMO_TO'])
+			$return['PROMO'] .= ' - ' . $return['RES_PROMO_TO'];
+
+		$return['SPP'] = '0';
+		if ($return['SPP_TO'])
+			$return['SPP'] .= ' - ' . $return['SPP_TO'];
+
+		$return['RES_FROM'] = $return['PRICE_FROM'] * (1 - $return['DISCOUNT_TO'] / 100) * (1 - $return['RES_PROMO_TO'] / 100) * (1 - $return['SPP_TO'] / 100);
+		$return['RES_TO'] = $return['PRICE_TO'] * (1 - $return['DISCOUNT_FROM'] / 100) * (1 - $return['RES_PROMO_FROM'] / 100);
 		$return['RES'] = number_format($return['RES_FROM'], 2, ',', '');
 		if ($return['RES_FROM'] != $return['RES_TO'])
 			$return['RES'] .= ' - ' . number_format($return['RES_TO'], 2, ',', '');

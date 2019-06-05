@@ -104,18 +104,14 @@
     $discountF = '';
     $priceF = number_format($product['PRICE'], 0, ',', ' ');
     if ($product['DISCOUNT'])
-    {
         $discountF = $product['DISCOUNT'];
-        $pdF = number_format(floor($product['PRICE'] * (1 - $product['DISCOUNT'] / 100)), 2, ',', ' ');
-    } else
-        $pdF = $priceF;
 
     ?>
     <h2>История изменения цен</h2>
     <table class="fix">
     <colgroup width="200">
     <colgroup width="80">
-        <col span="2">
+        <col span="5">
     </colgroup>
 	<colgroup width="130">
     <thead>
@@ -123,23 +119,21 @@
         <th>Дата</th>
         <th>Цена</th>
         <th>Скидка</th>
-        <th>Цена со скидкой</th>
+        <th>Промо</th>
+        <th>Общий промо</th>
+        <th>Итог промо</th>
+        <th>Цена со скидкой и&nbsp;промо</th>
     </tr>
-    </thead>
+    </thead><?
 
-    <tbody>
-    <tr>
-        <td class="tal">Текущее значение</td>
-        <td class="tar"><?= $priceF ?></td>
-        <td class="tar"><?= $discountF ?></td>
-        <td class="tar"><?= $pdF ?></td>
-    </tr><?
-
-    $hist = \Local\Main\PriceHistory::getByProduct($product['ID']);
+	$hist = \Local\Main\PriceHistory::getByProduct($product['ID']);
 	$histR = [];
 
 	$price = $product['START_PRICE'];
 	$d = 0;
+	$p = 0;
+	$pAll = 0;
+	$pRes = 0;
 	foreach ($hist as $item)
 	{
 		if ($item['UF_PRICE_CHANGE'])
@@ -148,9 +142,32 @@
 		if ($item['UF_DISCOUNT_CHANGE'])
 			$d = $item['UF_DISCOUNT'];
 
-		$item['RES'] = $price * (1 - $d / 100);
+		if ($item['UF_PROMO_CHANGE'])
+		{
+			if ($item['UF_PRODUCT'])
+				$p = $item['UF_PROMO'];
+			else
+				$pAll = $item['UF_PROMO'];
+
+			$pRes = max($p, $pAll);
+		}
+
+		$item['P'] = $pRes;
+		$item['RES'] = $price * (1 - $d / 100) * (1 - $pRes / 100);
 		array_unshift($histR, $item);
 	}
+
+	?>
+    <tbody>
+    <tr class="summary">
+        <td class="tal">Текущее значение</td>
+        <td class="tar"><?= $priceF ?></td>
+        <td class="tar"><?= $discountF ?></td>
+        <td class="tar"><?= number_format($p, 0, ',', ' '); ?></td>
+        <td class="tar"><?= number_format($pAll, 0, ',', ' '); ?></td>
+        <td class="tar"><?= number_format($pRes, 0, ',', ' '); ?></td>
+        <td class="tar"><?= number_format($item['RES'], 2, ',', ' '); ?></td>
+    </tr><?
 
     foreach ($histR as $item)
     {
@@ -164,6 +181,15 @@
         if ($item['UF_DISCOUNT_CHANGE'])
             $discountF = number_format($item['UF_DISCOUNT'], 0, ',', ' ');
 
+		$promoF = '';
+		if ($item['UF_PROMO_CHANGE'] && $item['UF_PRODUCT'])
+			$promoF = number_format($item['UF_PROMO'], 0, ',', ' ');
+
+		$allF = '';
+		if ($item['UF_PROMO_CHANGE'] && !$item['UF_PRODUCT'])
+			$allF = number_format($item['UF_PROMO'], 0, ',', ' ');
+
+		$promoResF = number_format($item['P'], 0, ',', ' ');
 		$pdF = number_format($item['RES'], 2, ',', ' ');
 
         ?>
@@ -171,15 +197,21 @@
         <td class="tal"><?= $dateF ?></td>
         <td class="tar"><?= $priceF ?></td>
         <td class="tar"><?= $discountF ?></td>
+        <td class="tar"><?= $promoF ?></td>
+        <td class="tar"><?= $allF ?></td>
+        <td class="tar"><?= $promoResF ?></td>
         <td class="tar"><?= $pdF ?></td>
         </tr><?
     }
 
 	$priceF = number_format($product['START_PRICE'], 0, ',', ' ');
     ?>
-	<tr>
+	<tr class="summary">
 		<td class="tal">Начальное значение</td>
 		<td class="tar"><?= $priceF ?></td>
+		<td class="tar"></td>
+		<td class="tar"></td>
+		<td class="tar"></td>
 		<td class="tar"></td>
 		<td class="tar"><?= $priceF ?>,00</td>
 	</tr>

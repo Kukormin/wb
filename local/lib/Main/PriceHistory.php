@@ -144,11 +144,16 @@ class PriceHistory
 	 * @param $date
 	 * @param $price
 	 * @param $discount
+	 * @param $promo
 	 * @param $priceCh
 	 * @param $discountCh
+	 * @param $promoCh
 	 * @return array|int
+	 * @throws \Bitrix\Main\ArgumentException
+	 * @throws \Bitrix\Main\ObjectPropertyException
+	 * @throws \Bitrix\Main\SystemException
 	 */
-	public static function add($product, $item, $date, $price, $discount, $priceCh, $discountCh)
+	public static function add($product, $item, $date, $price, $discount, $promo, $priceCh, $discountCh, $promoCh)
 	{
 		$data = array(
 			'UF_PRODUCT' => $product,
@@ -156,8 +161,10 @@ class PriceHistory
 			'UF_DATE' => $date,
 			'UF_PRICE' => $price,
 			'UF_DISCOUNT' => $discount,
+			'UF_PROMO' => $promo,
 			'UF_PRICE_CHANGE' => $priceCh,
 			'UF_DISCOUNT_CHANGE' => $discountCh,
+			'UF_PROMO_CHANGE' => $promoCh,
 		);
 
 		$entityInfo = HighloadBlockTable::getById(static::ENTITY_ID)->Fetch();
@@ -186,7 +193,9 @@ class PriceHistory
 				'UF_DATE' => 'asc',
 			],
 			'filter' => [
-				'UF_PRODUCT' => $product,
+				'LOGIC' => 'OR',
+				['UF_PRODUCT' => $product],
+				['=UF_PRODUCT' => 0],
 			],
 		]);
 		while ($item = $result->Fetch())
@@ -213,10 +222,28 @@ class PriceHistory
 				'UF_DATE' => 'asc',
 			],
 		]);
+		$all = [];
 		while ($item = $result->Fetch())
 		{
-			$return[$item['UF_PRODUCT']][] = $item;
+			if ($item['UF_PRODUCT'])
+			{
+				if (!isset($return[$item['UF_PRODUCT']]))
+				{
+					foreach ($all as $it)
+						$return[$item['UF_PRODUCT']][] = $it;
+				}
+
+				$return[$item['UF_PRODUCT']][] = $item;
+			}
+			else
+			{
+				$all[] = $item;
+				foreach ($return as $productId => $ar)
+					$return[$productId][] = $item;
+			}
 		}
+
+
 
 		return $return;
 	}

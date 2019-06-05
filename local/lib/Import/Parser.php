@@ -14,6 +14,7 @@ use Local\Main\Realization;
 use Local\Main\Sales;
 use Local\Main\Sections;
 use Local\Main\Shipping;
+use Local\Main\Spp;
 use Local\Main\Stocks;
 use Local\Main\StocksHistory;
 use Local\Main\Stores;
@@ -455,6 +456,52 @@ class Parser
 			$log['WARNINGS'] = true;
 	}
 
+	public static function sppHistory($accountId, $content, &$log)
+	{
+		$items = Spp::getAll();
+		$data = json_decode($content, true);
+
+		$counts = [
+			'ROWS' => count($data),
+			'ADD' => 0,
+		];
+
+		foreach ($data as $code => $item)
+		{
+			$date = $item['date'];
+			$isDeleted = $item['isDeleted'];
+			$brandID = $item['brandID'];
+			$brandName = $item['brandName'];
+			$discountPercent = $item['discountPercent'];
+
+			$date = new \DateTime($date);
+			$dateF = $date->format('d.m.Y H:i:s');
+
+			if ($items[$code])
+				continue;
+
+			$value = $isDeleted ? 0 : $discountPercent;
+			$brandId = 0;
+
+			if ($brandID > 0)
+			{
+				$brand = Brands::getByName($brandName, $accountId);
+				if (!$brand) {
+					Common::log('Не найден бренд: "' . $brandName . '"');
+					continue;
+				}
+
+				$brandId = $brand['ID'];
+			}
+
+			Spp::add($brandId, $dateF, $value, $code);
+			$counts['ADD']++;
+		}
+
+		$log['COUNTS']['SPP_ROWS'] = $counts['ROWS'];
+		$log['COUNTS']['SPP_ADD'] = $counts['ADD'];
+	}
+
 	/**
 	 * Обарботка отчета по ценам и скидкам
 	 * @param $accountId
@@ -474,6 +521,15 @@ class Parser
 			if (!$xmlId)
 			{
 				Common::log('Не найден xmlId');
+				continue;
+			}
+
+			if ($name != 'Установка цены' && $name != 'Установка цены и скидки'
+				&& $name != 'Установка скидки' && $name != 'Отмена скидки'
+				&& $name != 'Установка промокода' && $name != 'Отмена промокода'
+				&& $name != 'Установка общего промокода' && $name != 'Отмена общего промокода')
+			{
+				Common::log('Неизвестный заголовок: "' . $name . '"');
 				continue;
 			}
 
@@ -520,26 +576,51 @@ class Parser
 			'PRICE_UPDATED' => 0,
 		];
 
+		if ($hist['NAME'] == 'Установка промокода' || $hist['NAME'] == 'Отмена промокода')
+			$mode = 1; // Промокоды
+		elseif ($hist['NAME'] == 'Установка общего промокода' || $hist['NAME'] == 'Отмена общего промокода')
+			$mode = 2; // Общий промокод
+		else
+			$mode = 0; // Цены и скидки
+
 		foreach ($data as $item)
 		{
 			$xmlId = $item['nmId'];
 			$price = $item['price'];
-			$discount = $item['discount'];
+			$discount = $mode == 0 ? $item['discount'] : null;
+			$promo = $mode != 0 ? $item['discount'] : null;
 			$priceCh = isset($item['price']);
-			$discountCh = isset($item['discount']);
+			$discountCh = $mode == 0 && isset($item['discount']);
+			$promoCh = $mode != 0 && isset($item['discount']);
 
-			$product = Products::getByXmlId($xmlId);
-			if (!$product)
+			if ($mode == 0 || $mode == 1)
 			{
-				$counts['ERROR_PRODUCTS']++;
-				Common::log('Не найден товар: ' . $xmlId);
-				continue;
+				$product = Products::getByXmlId($xmlId);
+				if (!$product)
+				{
+					$counts['ERROR_PRODUCTS']++;
+					Common::log('Не найден товар: ' . $xmlId);
+					continue;
+				}
+
+				$productId = $product['ID'];
+			}
+			else
+			{
+				if ($xmlId > 0)
+				{
+					$counts['ERROR_PRODUCTS']++;
+					Common::log('Не должно быть товара для общего промокода: ' . $xmlId);
+					continue;
+				}
+
+				$productId = 0;
 			}
 
-			if ($priceCh || $discountCh)
+			if ($priceCh || $discountCh || $promoCh)
 			{
 				$counts['PRICE_UPDATED']++;
-				PriceHistory::add($product['ID'], $hist['ID'], $hist['DATE'], $price, $discount, $priceCh, $discountCh);
+				PriceHistory::add($productId, $hist['ID'], $hist['DATE'], $price, $discount, $promo, $priceCh, $discountCh, $promoCh);
 			}
 		}
 

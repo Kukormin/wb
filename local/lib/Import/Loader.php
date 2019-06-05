@@ -310,7 +310,8 @@ class Loader
 		$accounts = Accounts::getAll();
 		foreach ($accounts as $accountId => $account)
 		{
-			$url = self::HOST . '/ApiDiscount/api/v1/getUploadsHistory';
+
+			$url = self::HOST . '/discount/history';
 			$res = self::$http[$accountId]->get($url);
 
 			if ($res['http_code'] == 302)
@@ -322,13 +323,21 @@ class Loader
 
 					return $log;
 				}
-
-				$res = self::$http[$accountId]->get($url);
 			}
+
+			$url = self::HOST . '/ApiDiscount/api/v1/getUploadsHistory';
+			$res = self::$http[$accountId]->get($url);
 
 			file_put_contents($_SERVER['DOCUMENT_ROOT'] . '/_import/price/index.json', $res['CONTENT']);
 
 			Parser::priceHistory($accountId, $res['CONTENT'], $log);
+
+			$url = self::HOST . '/ApiSpp/api/v1/history';
+			$res = self::$http[$accountId]->get($url);
+
+			file_put_contents($_SERVER['DOCUMENT_ROOT'] . '/_import/price/spp.json', $res['CONTENT']);
+
+			Parser::sppHistory($accountId, $res['CONTENT'], $log);
 		}
 
 		Common::log("Импорт завершен.\n");

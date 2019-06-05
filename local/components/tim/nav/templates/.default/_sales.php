@@ -8,10 +8,12 @@ ini_set('memory_limit', '2048M');
 /** @var bool $needDateInterval */
 
 $priceHistory = null;
+$sppHistory = null;
 $startPrice = null;
 if ($showPrices)
 {
 	$priceHistory = \Local\Main\PriceHistory::getByProduct($product['ID']);
+	$sppHistory = \Local\Main\Spp::getAll();
 	$startPrice = $product['START_PRICE'];
 }
 
@@ -166,6 +168,8 @@ foreach ($sales as $item)
 			?>
 			<colgroup width="70">
 			<colgroup width="50">
+			<colgroup width="50">
+			<colgroup width="50">
 			<colgroup width="70">
 			<colgroup width="70"><?
 		}
@@ -185,7 +189,7 @@ foreach ($sales as $item)
 		if ($showPrices && $selectedGroup == 'n')
 		{
 			?>
-			<th colspan="4">Цены в этот день</th><?
+			<th colspan="6">Цены в этот день</th><?
 		}
 
 		?>
@@ -207,7 +211,9 @@ foreach ($sales as $item)
 			?>
 			<th>Цена</th>
 			<th>Ск.</th>
-			<th>Ц+Ск</th>
+			<th>Пр.</th>
+			<th>СПП</th>
+			<th>Рез.</th>
 			<th>Итог WB</th><?
 		}
 
@@ -245,7 +251,7 @@ foreach ($sales as $item)
 		if ($showPrices && $selectedGroup == 'n')
 		{
 			?>
-			<td colspan="4"></td><?
+			<td colspan="6"></td><?
 		}
 
 		?>
@@ -259,9 +265,11 @@ foreach ($sales as $item)
 	 * @param $selectedStore
 	 * @param $selectedGroup
 	 * @param null $priceHistory
+	 * @param null $sppHistory
 	 * @param null $startPrice
+	 * @param null $product
 	 */
-	function printRow($sums, $ts, $selectedStore, $selectedGroup, $priceHistory = null, $startPrice = null)
+	function printRow($sums, $ts, $selectedStore, $selectedGroup, $priceHistory = null, $sppHistory = null, $startPrice = null, $product = null)
 	{
 		foreach ($sums as $storeId => $sum)
 		{
@@ -290,7 +298,7 @@ foreach ($sales as $item)
 			if ($priceHistory && $selectedGroup == 'n')
 			{
 				$dateTime = \Bitrix\Main\Type\DateTime::createFromTimestamp($ts);
-				$dayPrice = \Local\System\Utils::getProductPriceByDay($dateTime, $priceHistory, $startPrice);
+				$dayPrice = \Local\System\Utils::getProductPriceByDay($dateTime, $priceHistory, $startPrice, $sppHistory, $product['BRAND']);
 
 				if ($sum['UF_ORDER'])
 				{
@@ -365,6 +373,8 @@ foreach ($sales as $item)
 					?>
 					<td class="tar"><?= $dayPrice['PRICE'] ?></td>
 					<td class="tar"><?= $dayPrice['DISCOUNT'] ?></td>
+					<td class="tar"><?= $dayPrice['PROMO'] ?></td>
+					<td class="tar"><?= $dayPrice['SPP'] ?></td>
 					<td class="tar"><?= $dayPrice['RES'] ?></td>
 					<td class="tar"><?= $dayPrice['WIN'] ?></td><?
 				}
@@ -426,7 +436,7 @@ foreach ($sales as $item)
 
 		if ($pred != $key)
 		{
-			printRow($sums, $pred, $selectedStore, $selectedGroup, $priceHistory, $startPrice);
+			printRow($sums, $pred, $selectedStore, $selectedGroup, $priceHistory, $sppHistory, $startPrice, $product);
 			clearSums($sums, $storeIds);
 		}
 
@@ -455,7 +465,7 @@ foreach ($sales as $item)
 	}
 
 	if ($pred)
-		printRow($sums, $pred, $selectedStore, $selectedGroup, $priceHistory, $startPrice);
+		printRow($sums, $pred, $selectedStore, $selectedGroup, $priceHistory, $sppHistory, $startPrice, $product);
 
 	?>
 	</tbody>
