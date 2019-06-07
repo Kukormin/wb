@@ -229,6 +229,9 @@ a.button.reset:hover {
 	margin: 0;
 }
 
+.price_history .ch {
+	background: #99d9d4;
+}
 
 .realization td:first-child {
 	text-align: left;

@@ -107,13 +107,13 @@
         $discountF = $product['DISCOUNT'];
 
     ?>
-    <h2>История изменения цен</h2>
-    <table class="fix">
+    <h2>История изменения цен и скидок</h2>
+    <table class="fix price_history">
     <colgroup width="200">
     <colgroup width="80">
-        <col span="5">
+        <col span="6">
     </colgroup>
-	<colgroup width="130">
+	<colgroup width="100">
     <thead>
     <tr>
         <th>Дата</th>
@@ -121,86 +121,142 @@
         <th>Скидка</th>
         <th>Промо</th>
         <th>Общий промо</th>
-        <th>Итог промо</th>
-        <th>Цена со скидкой и&nbsp;промо</th>
+        <th>СПП</th>
+        <th>Общий СПП</th>
+        <th>Цена итог</th>
     </tr>
     </thead><?
 
-	$hist = \Local\Main\PriceHistory::getByProduct($product['ID']);
-	$histR = [];
+	function dateCmp($a, $b)
+	{
+		return $a['UF_DATE'] < $b['UF_DATE'] ? -1 : 1;
+	}
 
-	$price = $product['START_PRICE'];
+	$hist = \Local\Main\PriceHistory::getByProduct($product['ID']);
+	$spp = \Local\Main\Spp::getByBrand($product['BRAND']);
+	$merge = array_merge($hist, $spp);
+	uasort($merge, 'dateCmp');
+
+	$resPred = [
+		'DATE' => null,
+		'PRICE' => $product['START_PRICE'],
+		'DISCOUNT' => 0,
+		'PROMO' => 0,
+		'ALL_PROMO' => 0,
+		'SPP' => 0,
+		'ALL_SPP' => 0,
+	];
+
+	$reverse = [];
 	$d = 0;
 	$p = 0;
 	$pAll = 0;
 	$pRes = 0;
-	foreach ($hist as $item)
+	foreach ($merge as $item)
 	{
+		$res = $resPred;
+		$res['DATE'] = $item['UF_DATE'];
+
+		$res['PRICE_CH'] = (bool)$item['UF_PRICE_CHANGE'];
 		if ($item['UF_PRICE_CHANGE'])
-			$price = $item['UF_PRICE'];
+			$res['PRICE'] = $item['UF_PRICE'];
 
+		$res['DISCOUNT_CH'] = (bool)$item['UF_DISCOUNT_CHANGE'];
 		if ($item['UF_DISCOUNT_CHANGE'])
-			$d = $item['UF_DISCOUNT'];
+			$res['DISCOUNT'] = $item['UF_DISCOUNT'];
 
+		$res['PROMO_CH'] = false;
+		$res['ALL_PROMO_CH'] = false;
 		if ($item['UF_PROMO_CHANGE'])
 		{
 			if ($item['UF_PRODUCT'])
-				$p = $item['UF_PROMO'];
+			{
+				$res['PROMO'] = $item['UF_PROMO'];
+				$res['PROMO_CH'] = true;
+			}
 			else
-				$pAll = $item['UF_PROMO'];
-
-			$pRes = max($p, $pAll);
+			{
+				$res['ALL_PROMO'] = $item['UF_PROMO'];
+				$res['ALL_PROMO_CH'] = true;
+			}
 		}
 
-		$item['P'] = $pRes;
-		$item['RES'] = $price * (1 - $d / 100) * (1 - $pRes / 100);
-		array_unshift($histR, $item);
+		$res['SPP_CH'] = false;
+		$res['ALL_SPP_CH'] = false;
+		if (isset($item['UF_BRAND']))
+		{
+			if ($item['UF_BRAND'])
+			{
+				$res['SPP'] = $item['UF_VALUE'];
+				$res['SPP_CH'] = true;
+			}
+			else
+			{
+				$res['ALL_SPP'] = $item['UF_VALUE'];
+				$res['ALL_SPP_CH'] = true;
+			}
+		}
+
+		array_unshift($reverse, $res);
+		$resPred = $res;
 	}
 
+
+
 	?>
-    <tbody>
-    <tr class="summary">
-        <td class="tal">Текущее значение</td>
-        <td class="tar"><?= $priceF ?></td>
-        <td class="tar"><?= $discountF ?></td>
-        <td class="tar"><?= number_format($p, 0, ',', ' '); ?></td>
-        <td class="tar"><?= number_format($pAll, 0, ',', ' '); ?></td>
-        <td class="tar"><?= number_format($pRes, 0, ',', ' '); ?></td>
-        <td class="tar"><?= number_format($item['RES'], 2, ',', ' '); ?></td>
-    </tr><?
+    <tbody><?
 
-    foreach ($histR as $item)
+	$first = true;
+    foreach ($reverse as $item)
     {
-        $dateF = $item['UF_DATE'];
+        $dateF = $item['DATE'];
 
-        $priceF = '';
-        if ($item['UF_PRICE_CHANGE'])
-            $priceF = number_format($item['UF_PRICE'], 0, ',', ' ');
+        $priceF = number_format($item['PRICE'], 0, ',', ' ');
+        $priceCl = $item['PRICE_CH'] ? ' class="ch"' : '';
+        $discountF = number_format($item['DISCOUNT'], 0, ',', ' ');
+		$discountCl = $item['DISCOUNT_CH'] ? ' class="ch"' : '';
+		$promoF = number_format($item['PROMO'], 0, ',', ' ');
+		$promoCl = $item['PROMO_CH'] ? ' class="ch"' : '';
+		$allPromoF = number_format($item['ALL_PROMO'], 0, ',', ' ');
+		$allPromoCl = $item['ALL_PROMO_CH'] ? ' class="ch"' : '';
+		$sppF = number_format($item['SPP'], 0, ',', ' ');
+		$sppCl = $item['SPP_CH'] ? ' class="ch"' : '';
+		$allSppF = number_format($item['ALL_SPP'], 0, ',', ' ');
+		$allSppCl = $item['ALL_SPP_CH'] ? ' class="ch"' : '';
 
-        $discountF = '';
-        if ($item['UF_DISCOUNT_CHANGE'])
-            $discountF = number_format($item['UF_DISCOUNT'], 0, ',', ' ');
+		$promo = max($item['PROMO'], $item['ALL_PROMO']);
+		$spp = max($item['SPP'], $item['ALL_SPP']);
+		$res = $item['PRICE'] * (1 - $item['DISCOUNT'] / 100) * (1 - $promo / 100) * (1 - $spp / 100);
 
-		$promoF = '';
-		if ($item['UF_PROMO_CHANGE'] && $item['UF_PRODUCT'])
-			$promoF = number_format($item['UF_PROMO'], 0, ',', ' ');
+		$resF = number_format($res, 2, ',', ' ');
 
-		$allF = '';
-		if ($item['UF_PROMO_CHANGE'] && !$item['UF_PRODUCT'])
-			$allF = number_format($item['UF_PROMO'], 0, ',', ' ');
+		if ($first)
+		{
+			$first = false;
 
-		$promoResF = number_format($item['P'], 0, ',', ' ');
-		$pdF = number_format($item['RES'], 2, ',', ' ');
+			?>
+			<tr class="summary">
+				<td class="tal">Текущие значения</td>
+				<td><?= $priceF ?></td>
+				<td><?= $discountF ?></td>
+				<td><?= $promoF ?></td>
+				<td><?= $allPromoF ?></td>
+				<td><?= $sppF ?></td>
+				<td><?= $allSppF ?></td>
+				<td class="tar"><?= $resF ?></td>
+			</tr><?
+		}
 
         ?>
         <tr>
-        <td class="tal"><?= $dateF ?></td>
-        <td class="tar"><?= $priceF ?></td>
-        <td class="tar"><?= $discountF ?></td>
-        <td class="tar"><?= $promoF ?></td>
-        <td class="tar"><?= $allF ?></td>
-        <td class="tar"><?= $promoResF ?></td>
-        <td class="tar"><?= $pdF ?></td>
+			<td class="tal"><?= $dateF ?></td>
+			<td<?= $priceCl ?>><?= $priceF ?></td>
+			<td<?= $discountCl ?>><?= $discountF ?></td>
+			<td<?= $promoCl ?>><?= $promoF ?></td>
+			<td<?= $allPromoCl ?>><?= $allPromoF ?></td>
+			<td<?= $sppCl ?>><?= $sppF ?></td>
+			<td<?= $allSppCl ?>><?= $allSppF ?></td>
+			<td class="tar"><?= $resF ?></td>
         </tr><?
     }
 
@@ -208,11 +264,12 @@
     ?>
 	<tr class="summary">
 		<td class="tal">Начальное значение</td>
-		<td class="tar"><?= $priceF ?></td>
-		<td class="tar"></td>
-		<td class="tar"></td>
-		<td class="tar"></td>
-		<td class="tar"></td>
+		<td><?= $priceF ?></td>
+		<td></td>
+		<td></td>
+		<td></td>
+		<td></td>
+		<td></td>
 		<td class="tar"><?= $priceF ?>,00</td>
 	</tr>
     </tbody>

@@ -60,7 +60,9 @@ class Spp
 				'UF_DATE' => 'asc',
 			],
 			'filter' => [
-				'UF_BRAND' => $brandId,
+				'LOGIC' => 'OR',
+				['UF_BRAND' => $brandId],
+				['=UF_BRAND' => 0],
 			],
 		]);
 		while ($item = $result->Fetch())
