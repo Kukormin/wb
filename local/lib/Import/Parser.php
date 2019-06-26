@@ -61,6 +61,7 @@ class Parser
 
 			// Первая строка (с заголовками)
 			// brand_name,subject_name,nm_id,chrt_id,sa,IMTsa,nsa,ts_name,barcode,price_ru,contents_names_list,MinWeight
+			//﻿Бренд,Предмет,Номенклатура,Код_размера__chrt_id_,Артикул_поставщика,Артикул_ИМТ,Артикул_Цвета,Размер,Баркод,Розничная_цена__руб_,Комплектация
 			if (!$i)
 			{
 				if (count($parts) < 11)
@@ -97,7 +98,13 @@ class Parser
 					$data[$key] = trim($v);
 				}
 
-				$brandName = $data['brand_name'];
+				$brandName = $data['Бренд'];
+				if (!strlen($brandName))
+				{
+					$counts['SKIP']++;
+					continue;
+				}
+
 				$brand = Brands::getByName($brandName, $accountId);
 				if (!$brand)
 					$brand = Brands::add($brandName, $accountId);
@@ -107,11 +114,11 @@ class Parser
 					continue;
 				}
 
-				$xmlId = $data['nm_id'];
+				$xmlId = $data['Номенклатура'];
 				$product = Products::getByXmlId($xmlId);
 				if (!$product)
 				{
-					$sectionName = $data['subject_name'];
+					$sectionName = $data['Предмет'];
 					$section = Sections::getByName($sectionName);
 					if (!$section)
 						$section = Sections::add($sectionName);
@@ -164,14 +171,14 @@ class Parser
 					$fields = [
 						'NAME' => $name,
 						'XML_ID' => $xmlId,
-						'CODE' => $data['sa'],
+						'CODE' => $data['Артикул_поставщика'],
 						'IBLOCK_SECTION_ID' => $section['ID'],
 						'PROPERTY_VALUES' => [
 							'BRAND' => $brand['ID'],
-							'ARTICLE_IMT' => $data['IMTsa'],
-							'ARTICLE_COLOR' => $data['nsa'],
-							'PRICE' => floatval($data['price_ru']),
-							'START_PRICE' => floatval($data['price_ru']),
+							'ARTICLE_IMT' => $data['Артикул_ИМТ'],
+							'ARTICLE_COLOR' => $data['Артикул_Цвета'],
+							'PRICE' => floatval($data['Розничная_цена__руб_']),
+							'START_PRICE' => floatval($data['Розничная_цена__руб_']),
 							'COLLECTION' => $defaultCollection,
 						],
 					];
@@ -186,7 +193,7 @@ class Parser
 					continue;
 				}
 
-				$bar = $data['barcode'];
+				$bar = $data['Баркод'];
 				if (!$bar)
 				{
 					$counts['SKIP']++;
@@ -195,7 +202,7 @@ class Parser
 				$offer = Offers::getByBar($bar);
 				if (!$offer)
 				{
-					$size = $data['ts_name'];
+					$size = $data['Размер'];
 					$offer = Offers::getByProductSize($product['ID'], $size);
 					if (!$offer)
 					{
@@ -203,7 +210,7 @@ class Parser
 
 						$fields = [
 							'NAME' => $name,
-							'CODE' => $data['chrt_id'],
+							'CODE' => $data['Код_размера__chrt_id_'],
 							'XML_ID' => $bar,
 							'PROPERTY_VALUES' => [
 								'PRODUCT' => $product['ID'],
