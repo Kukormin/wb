@@ -98,12 +98,6 @@ class Parser
 				}
 
 				$brandName = $data['brand_name'];
-				if (!strlen($brandName))
-				{
-					$counts['SKIP']++;
-					continue;
-				}
-
 				$brand = Brands::getByName($brandName, $accountId);
 				if (!$brand)
 					$brand = Brands::add($brandName, $accountId);
