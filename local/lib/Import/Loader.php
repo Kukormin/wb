@@ -325,7 +325,8 @@ class Loader
 				}
 			}
 
-			$url = self::HOST . '/ApiDiscount/api/v1/getUploadsHistory';
+
+			$url = self::HOST . '/ApiDiscount/api/v1/getUploadsHistory?pageSize=200&pageNumber=1&sort=UploadDate&desc=true';
 			$res = self::$http[$accountId]->get($url);
 
 			file_put_contents($_SERVER['DOCUMENT_ROOT'] . '/_import/price/index.json', $res['CONTENT']);
@@ -744,7 +745,7 @@ class Loader
 			// 2. Проверка готовности отчета
 			$url = self::HOST . '/shortage/isready/' . $deficitWbId;
 			$ready = false;
-			for ($i = 1; $i < 10; $i++)
+			for ($i = 1; $i < 20; $i++)
 			{
 				$res = self::$http[$accountId]->get($url);
 				$ans = json_decode($res['CONTENT'], true);
@@ -767,8 +768,8 @@ class Loader
 
 			if (!$ready)
 			{
-				Common::log('Отчет не сформирован за 10 секунд');
-				$log['ERRORS'][] = 'Отчет не сформирован за 10 секунд';
+				Common::log('Отчет не сформирован за 20 секунд');
+				$log['ERRORS'][] = 'Отчет не сформирован за 20 секунд';
 
 				return $log;
 			}

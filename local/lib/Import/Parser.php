@@ -512,7 +512,7 @@ class Parser
 	{
 		PriceHistory::getAllItems(true);
 		$data = json_decode($content, true);
-		foreach ($data as $item)
+		foreach ($data['uploads'] as $item)
 		{
 			$date = $item['uploadDate'];
 			$xmlId = $item['id'];
