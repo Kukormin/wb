@@ -39,7 +39,7 @@ if ($_REQUEST['from'])
 if ($_REQUEST['to'])
 	$filter['<=UF_DATE'] = \Bitrix\Main\Type\Date::createFromText($_REQUEST['to'] . ' 23:59:59');
 if ($selectedStore)
-	$filter['=UF_STORE'] = $selectedStore;
+	$filter['UF_STORE'] = $selectedStore;
 
 if ($selectedStore || $selectedGroup != 'n' || $_REQUEST['from'] || $_REQUEST['to'])
 	$showReset = $APPLICATION->GetCurDir() . '?p=sales';

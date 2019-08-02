@@ -283,7 +283,8 @@ $from = new \Bitrix\Main\Type\DateTime();
 $from->add('-1 months');
 $week = new \Bitrix\Main\Type\DateTime();
 $weekTs = $week->add('-2 week')->getTimestamp();
-$sales = \Local\Main\Sales::getByDates($from, $to);
+$filterStore = $od ? 0 : $store['ID'];
+$sales = \Local\Main\Sales::getByDates($from, $to, $filterStore);
 // Группируем продажи по предложениям
 $salesOfferData = [];
 $isWeek = true;

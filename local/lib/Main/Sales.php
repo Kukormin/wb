@@ -330,11 +330,19 @@ ORDER BY S.UF_DATE desc
 	 * Возвращает продажи всех товаров для диапазона дат
 	 * @param $from
 	 * @param $to
+	 * @param $store
 	 * @return array
 	 */
-	public static function getByDates($from, $to)
+	public static function getByDates($from, $to, $store = 0)
 	{
 		$return = array();
+
+		$filter = [
+			'>=UF_DATE' => $from,
+			'<=UF_DATE' => $to,
+		];
+		if ($store)
+			$filter['UF_STORE'] = $store;
 
 		$entityInfo = HighloadBlockTable::getById(static::ENTITY_ID)->Fetch();
 		$entity = HighloadBlockTable::compileEntity($entityInfo);
@@ -343,10 +351,7 @@ ORDER BY S.UF_DATE desc
 			'order' => [
 				'UF_DATE' => 'desc',
 			],
-			'filter' => [
-				'>=UF_DATE' => $from,
-				'<=UF_DATE' => $to,
-			],
+			'filter' => $filter,
 		]);
 		while ($item = $rsItems->Fetch())
 			$return[] = $item;
