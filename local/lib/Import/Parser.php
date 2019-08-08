@@ -1156,8 +1156,27 @@ class Parser
                     $code = $color;
                     if ($IMT)
 						$code = $IMT . $code;
-                    $product = Products::getByCode($code);
-                    if (!$product)
+                    $products = Products::getByCode($code);
+                    if (!$products)
+					{
+						$counts['ERROR_PRODUCTS']++;
+						Common::log('Не найден товар: ' . $code);
+
+						continue;
+					}
+
+					$product = null;
+					foreach ($products as $tmpProduct)
+					{
+						$brand = Brands::getById($tmpProduct['BRAND']);
+						if ($accountId == $brand['ACCOUNT'])
+						{
+							$product = $tmpProduct;
+							break;
+						}
+					}
+
+					if (!$product)
 					{
 						$counts['ERROR_PRODUCTS']++;
 						Common::log('Не найден товар: ' . $code);

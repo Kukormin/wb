@@ -17,12 +17,15 @@ ini_set('memory_limit', '2048M');
 if (!$bConsole)
 	echo '<pre>';
 
-$file = $_SERVER['DOCUMENT_ROOT'] . '/_import/sales/2018_11/03.11.2018_podolsk.csv';
+/*$file = $_SERVER['DOCUMENT_ROOT'] . '/_import/sales/2018_11/03.11.2018_podolsk.csv';
 $s = file_get_contents($file);
 $log = '';
 $dateF = '03.11.2018';
 $store = \Local\Main\Stores::getById(4);
-\Local\Import\Parser::sales($s, $dateF, $store, $log);
+\Local\Import\Parser::sales($s, $dateF, $store, $log);*/
+
+$import = \Local\Import\Imports::getByXmlId('local');
+$data = \Local\Import\Local::load();
 
 if (!$bConsole)
 	echo '</pre>';

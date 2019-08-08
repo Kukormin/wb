@@ -79,7 +79,7 @@ class Products
 					'DISABLE' => $item['PROPERTY_DISABLE_VALUE'] == 1,
 				);
 				$return['BY_XML_ID'][$xmlId] = $id;
-				$return['BY_CODE'][$code] = $id;
+				$return['BY_CODE'][$code][] = $id;
 			}
 
 			$extCache->endDataCache($return);
@@ -184,7 +184,7 @@ class Products
 	}
 
 	/**
-	 * Возвращает элемент по коду
+	 * Возвращает элемент(ы) по коду
 	 * @param $code
 	 * @return mixed
 	 */
@@ -192,9 +192,12 @@ class Products
 	{
 		$all = self::getAll();
 
-		$id = $all['BY_CODE'][$code];
+		$items = [];
+		foreach ($all['BY_CODE'][$code] as $id) {
+			$items[$id] = $all['ITEMS'][$id];
+		}
 
-		return $all['ITEMS'][$id];
+		return $items;
 	}
 
 	/**
