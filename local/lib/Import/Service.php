@@ -279,13 +279,13 @@ class Service
 		$import = Imports::getByXmlId('local');
 		$data = Local::load();
 
+		self::clearLock('local');
+
 		if (isset($data['SKIP']) && $data['SKIP'] === true)
 			return;
 
 		$end = microtime(true);
 		Log::add($import['ID'], $begin, $end, count($data['ERRORS']) <= 0, $agent, $data);
-
-		self::clearLock('local');
 	}
 
 	/**
