@@ -98,7 +98,20 @@ class Parser
 					$data[$key] = trim($v);
 				}
 
-				$brandName = $data['Бренд'];
+				$brandName = isset($data['Бренд']) ? $data['Бренд'] : $data['brand_name'];
+				$sectionName = isset($data['Предмет']) ? $data['Предмет'] : $data['subject_name'];
+				$xmlId = isset($data['Номенклатура']) ? $data['Номенклатура'] : $data['nm_id'];
+				$offerCode = isset($data['Код_размера__chrt_id_']) ? $data['Код_размера__chrt_id_'] : $data['chrt_id'];
+				$article = isset($data['Артикул_поставщика']) ? $data['Артикул_поставщика'] : $data['sa'];
+				$bar = isset($data['Баркод']) ? $data['Баркод'] : $data['barcode'];
+				$size = isset($data['Размер']) ? $data['Размер'] : $data['ts_name'];
+				$imt = isset($data['Артикул_ИМТ']) ? $data['Артикул_ИМТ'] : $data['sa_imt'];
+				$color = isset($data['Артикул_Цвета']) ? $data['Артикул_Цвета'] : $data['sa_color'];
+				$price = floatval(isset($data['Розничная_цена__руб_']) ? $data['Розничная_цена__руб_'] : $data['price_ru']);
+				$name = isset($data['contents_names_list']) ? $data['contents_names_list'] : '';
+				if (!$name)
+					$name = $sectionName;
+
 				if (!strlen($brandName))
 				{
 					$counts['SKIP']++;
@@ -114,11 +127,9 @@ class Parser
 					continue;
 				}
 
-				$xmlId = $data['Номенклатура'];
 				$product = Products::getByXmlId($xmlId);
 				if (!$product)
 				{
-					$sectionName = $data['Предмет'];
 					$section = Sections::getByName($sectionName);
 					if (!$section)
 						$section = Sections::add($sectionName);
@@ -171,14 +182,14 @@ class Parser
 					$fields = [
 						'NAME' => $name,
 						'XML_ID' => $xmlId,
-						'CODE' => $data['Артикул_поставщика'],
+						'CODE' => $article,
 						'IBLOCK_SECTION_ID' => $section['ID'],
 						'PROPERTY_VALUES' => [
 							'BRAND' => $brand['ID'],
-							'ARTICLE_IMT' => $data['Артикул_ИМТ'],
-							'ARTICLE_COLOR' => $data['Артикул_Цвета'],
-							'PRICE' => floatval($data['Розничная_цена__руб_']),
-							'START_PRICE' => floatval($data['Розничная_цена__руб_']),
+							'ARTICLE_IMT' => $imt,
+							'ARTICLE_COLOR' => $color,
+							'PRICE' => $price,
+							'START_PRICE' => $price,
 							'COLLECTION' => $defaultCollection,
 						],
 					];
@@ -193,7 +204,6 @@ class Parser
 					continue;
 				}
 
-				$bar = $data['Баркод'];
 				if (!$bar)
 				{
 					$counts['SKIP']++;
@@ -202,7 +212,6 @@ class Parser
 				$offer = Offers::getByBar($bar);
 				if (!$offer)
 				{
-					$size = $data['Размер'];
 					$offer = Offers::getByProductSize($product['ID'], $size);
 					if (!$offer)
 					{
@@ -210,7 +219,7 @@ class Parser
 
 						$fields = [
 							'NAME' => $name,
-							'CODE' => $data['Код_размера__chrt_id_'],
+							'CODE' => $offerCode,
 							'XML_ID' => $bar,
 							'PROPERTY_VALUES' => [
 								'PRODUCT' => $product['ID'],
