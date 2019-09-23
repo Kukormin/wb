@@ -58,11 +58,55 @@ class Loader
 	{
 		$url = self::HOST . '/Account/Login';
 		$post = 'UserName=' . $account['LOGIN'] . '&Password=' . $account['PASS'];
-		$res = self::$http[$account['ID']]->post($url, $post);
+		$headers = [];
+		if ($_POST['captcha'])
+		{
+			Common::log('Авторизация с каптчей');
+			$post .= '&BDC_VCID_SuppliersCaptcha=' . $_POST['vcid'] .
+				'&BDC_BackWorkaround_SuppliersCaptcha=1&CaptchaCode=' . $_POST['captcha'];
+			self::$http[$account['ID']]->verbose();
+			$headers = [
+				'Referer: https://suppliers.wildberries.ru/Account/Login',
+				'Sec-Fetch-Mode: navigate',
+				'Sec-Fetch-Site: same-origin',
+				'Sec-Fetch-User: ?1',
+				'Upgrade-Insecure-Requests: 1',
+			];
+			Common::log($post);
+		}
+		$res = self::$http[$account['ID']]->post($url, $post, '', $headers);
+
+		$reportFileName = $_SERVER['DOCUMENT_ROOT'] . '/_import/login.html';
+		file_put_contents($reportFileName, $res['CONTENT']);
+
+		//$res['CONTENT'] = file_get_contents($reportFileName);
+		//$res['http_code'] = 200;
 
 		if ($res['http_code'] != 302)
 		{
 			Common::log('Ошибка авторизации');
+
+			if ($res['http_code'] == 200)
+			{
+				Common::log('Требуется ввести каптчу');
+
+				$ar = Common::strParts($res['CONTENT'], [
+					'SuppliersCaptcha_CaptchaImage',
+					'src="',
+					'"',
+					'name="BDC_VCID_SuppliersCaptcha"',
+					'value="',
+					'"',
+					'name="BDC_BackWorkaround_SuppliersCaptcha"',
+					'value="',
+					'"',
+				]);
+				echo '</pre><img src="https://www.wildberries.ru' . $ar[2] . '"><pre>';
+				echo '<form method="post"><input name="captcha" />';
+				echo '<input type="hidden" name="vcid" value="' . $ar[5] . '" />';
+				echo '<input type="hidden" name="back" value="' . $ar[8] . '" />';
+				echo '<input type="submit" /></form>';
+			}
 
 			return false;
 		}
@@ -465,10 +509,6 @@ class Loader
 			'ERRORS' => [],
 		];
 
-		$fileName = $_SERVER['DOCUMENT_ROOT'] . '/_import/sales/last.txt';
-		$lastSalesDay = file_get_contents($fileName);
-
-		$last = MakeTimeStamp($lastSalesDay) + 86400;
 		$daysBefore = 10;
 		// Первого числа закачиваем продажи за 3 месяца
 		if (date('d') == 1)
@@ -476,6 +516,16 @@ class Loader
 
 		$now = MakeTimeStamp(date('d.m.Y'));
 		$ts = $now - $daysBefore * 86400;
+
+		$fileName = $_SERVER['DOCUMENT_ROOT'] . '/_import/sales/last.txt';
+		if (file_exists($fileName)) {
+			$lastSalesDay = file_get_contents($fileName);
+			$last = MakeTimeStamp($lastSalesDay) + 86400;
+		}
+		else {
+			$last = $ts;
+		}
+
 		if ($last < $ts)
 			$ts = $last;
 

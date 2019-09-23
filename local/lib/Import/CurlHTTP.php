@@ -11,7 +11,7 @@ class CurlHTTP
 {
 	const LOAD_LOG = true;
 
-	private $USER_AGENT = 'Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:58.0) Gecko/20100101 Firefox/58.0';
+	private $USER_AGENT = 'Mozilla/5.0 (Windows NT 6.1; Win64; x64; rv:69.0) Gecko/20100101 Firefox/69.0';
 	private $ENCODING = 'gzip';
 	private $auth;
 	private $sslNoVerify = false;
