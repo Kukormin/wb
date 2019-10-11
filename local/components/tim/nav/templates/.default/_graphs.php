@@ -73,6 +73,9 @@ foreach ($stocks as $i => $item)
 {
 	/** @var \Bitrix\Main\Type\DateTime $date */
 	$date = $item['UF_DATE'];
+	if ($date === null)
+		continue;
+
 	$dateF = $date->format('c');
 
 	if ($item['SUM'] > $stocksMax)

@@ -46,6 +46,7 @@ class Parser
 			'ROWS' => 0,
 			'SKIP' => 0,
 			'NEW_PRODUCTS' => 0,
+			'UPDATE_PRODUCTS' => 0,
 			'NEW_OFFERS' => 0,
 			'ERROR_PRODUCTS' => 0,
 			'ERROR_OFFERS' => 0,
@@ -197,6 +198,25 @@ class Parser
 
 					$counts['NEW_PRODUCTS']++;
 				}
+				else
+				{
+					$upd = false;
+					if ($product['ARTICLE_IMT'] != $imt) {
+						Products::updateProperty($product['ID'], 'ARTICLE_IMT', $imt);
+						$upd = true;
+					}
+					if ($product['ARTICLE_COLOR'] != $color) {
+						Products::updateProperty($product['ID'], 'ARTICLE_COLOR', $color);
+						$upd = true;
+					}
+					if ($product['CODE'] != $article) {
+						Products::updateField($product['ID'], 'CODE', $article);
+						$upd = true;
+					}
+					if ($upd) {
+						$counts['UPDATE_PRODUCTS']++;
+					}
+				}
 				if (!$product)
 				{
 					$counts['ERROR_PRODUCTS']++;
@@ -248,6 +268,7 @@ class Parser
 		$report .= "\nВсего строк: " . $counts['ROWS'];
 		$report .= "\nПропущено: " . $counts['SKIP'];
 		$report .= "\nНовых товаров: " . $counts['NEW_PRODUCTS'];
+		$report .= "\nИзменено товаров: " . $counts['UPDATE_PRODUCTS'];
 		$report .= "\nНовых предложений: " . $counts['NEW_OFFERS'];
 		$report .= "\nОшибок товаров: " . $counts['ERROR_PRODUCTS'];
 		$report .= "\nОшибок предложений: " . $counts['ERROR_OFFERS'];
@@ -262,12 +283,12 @@ class Parser
 		{
 			$message = 'Новые элементы в номенклатуре: (новых товаров: ' . $counts['NEW_PRODUCTS'] . ', новых предложений: ' . $counts['NEW_OFFERS'] . ')';
 			Common::addAdminNotify($message);
-
-			if ($counts['NEW_PRODUCTS'])
-				Products::getAll(true);
-			if ($counts['NEW_OFFERS'])
-				Offers::getAll(true);
 		}
+
+		if ($counts['NEW_PRODUCTS'] || $counts['UPDATE_PRODUCTS'])
+			Products::getAll(true);
+		if ($counts['NEW_OFFERS'])
+			Offers::getAll(true);
 	}
 
 	/**

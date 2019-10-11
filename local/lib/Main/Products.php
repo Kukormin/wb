@@ -299,4 +299,30 @@ class Products
 
 		self::getAll(true);
 	}
+
+	/**
+	 * @param $id
+	 * @param $code
+	 * @param $value
+	 */
+	public static function updateProperty($id, $code, $value)
+	{
+		$el = new \CIBlockElement();
+		$el->SetPropertyValuesEx($id, self::IBLOCK_ID, [
+			$code => $value,
+		]);
+	}
+
+	/**
+	 * @param $id
+	 * @param $code
+	 * @param $value
+	 */
+	public static function updateField($id, $code, $value)
+	{
+		$el = new \CIBlockElement();
+		$el->Update($id, [
+			$code => $value,
+		]);
+	}
 }
